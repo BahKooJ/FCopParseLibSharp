@@ -169,7 +169,7 @@ class IFFParser
 
                 }
 
-                offsets.Add(new ChunkHeader(offset, fourCC, size, fourCCType, fileName));
+                offsets.Add(new ChunkHeader(offset, fourCC, size, fourCCType, null, fileName));
 
 
             } else {
@@ -222,8 +222,10 @@ class IFFParser
         return System.Text.Encoding.Default.GetString(bytes, offset, length);
     }
 
-    string BytesToStringReversed(int offset, int length) {
-        return Reverse(System.Text.Encoding.Default.GetString(bytes, offset, length));
+    string BytesToStringReversed(int offset, int length)
+    {
+        Span<byte> data = bytes;
+        data.Slice(offset, length).Reverse();
+        return data.ToString();
     }
-
 }
