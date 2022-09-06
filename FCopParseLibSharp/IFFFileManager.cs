@@ -12,22 +12,6 @@ class IFFFileManager {
     // Nothing but the music, the key is the name of the song.
     public KeyValuePair<string, List<byte>>? music = null;
 
-    public List<IFFDataFile> GrabAllFiles(Func<IFFDataFile, bool> where) {
-
-        var total = new List<IFFDataFile>();
-
-        foreach (IFFDataFile file in files) {
-
-            if (where(file)) {
-                total.Add(file);
-            }
-
-        }
-
-        return total;
-
-    }
-
 }
 
 // Object for storing important meta data to a game file.

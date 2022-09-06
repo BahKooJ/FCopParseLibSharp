@@ -5,11 +5,11 @@ class FCopLevel {
 
     public FCopLevel(IFFFileManager fileManager) {
 
-        rawFiles = fileManager.GrabAllFiles(where: file => {
+        rawFiles = fileManager.files.Where( file => {
 
             return file.dataFourCC == "Ctil";
 
-        });
+        }).ToList();
 
     }
 
@@ -18,10 +18,20 @@ class FCopLevel {
 
 class FCopLevelSection {
 
+    const int textureCordCountOffset = 10;
+    const int heightMapOffset = 12;
+    const int heightMapEndOffset = 879;
+
     IFFDataFile rawFile;
 
     public FCopLevelSection(IFFDataFile rawFile) {
         this.rawFile = rawFile;
+    }
+
+    public void ParseHeightPoints() {
+
+        rawFile.data.GetRange(heightMapOffset, heightMapEndOffset);
+
     }
 
 }
