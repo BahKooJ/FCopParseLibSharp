@@ -2,6 +2,9 @@
 
 var parser = new IFFParser(File.ReadAllBytes("Mp"));
 
-var foo = parser.Parse();
+var fileManager = parser.Parse();
+
+var level = new FCopLevel(fileManager);
 
 Console.WriteLine("bonk");
+
