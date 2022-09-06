@@ -1,14 +1,20 @@
 ﻿
+// This object will act as the in-between from the IFF file and any parsers of game data/files.
+// This object is planned to convert the game files back to the IFF file format for Future Cop to read.
 class IFFFileManager {
 
+    // Game data that are separated and turn into individual files.
     public List<IFFDataFile> files = new List<IFFDataFile> ();
 
+    // Sub folders/files inside the IFF file that are separated.
     public Dictionary<string, List<IFFDataFile>> subFiles = new Dictionary<string, List<IFFDataFile>>();
 
+    // Nothing but the music, the key is the name of the song.
     public KeyValuePair<string, List<byte>>? music = null;
 
 }
 
+// Object for storing important meta data to a game file.
 class IFFDataFile {
 
     public List<byte> data;

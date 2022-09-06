@@ -1,4 +1,5 @@
 ﻿
+//Objects for storing useful data regarding chunk headers.
 class ChunkHeader {
 
     public int index;

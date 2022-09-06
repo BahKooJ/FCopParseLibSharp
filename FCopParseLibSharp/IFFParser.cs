@@ -1,7 +1,11 @@
 ﻿
-
+// This object is what indexes the IFF files determines where chunks are located.
+// It stores chunk information with the ChunkHeader object.
 class IFFParser
 {
+    // consants for important fourCCs.
+    // Other fourCCs can be ignored as they're just a description of what the item is.
+    // However it is import to test for these specifically to know how to parse the chunk.
     static class FourCC {
         public const string CTRL = "CTRL";
         public const string SHOC = "SHOC";
@@ -12,23 +16,23 @@ class IFFParser
         public const string MSIC = "MSIC";
     }
 
-    public static string Reverse(string s) {
-        char[] charArray = s.ToCharArray();
-        Array.Reverse(charArray);
-        return new string(charArray);
-    }
-
+    // The normal length of a chunk header.
     const int chunkHeaderLength = 20;
 
+    // Bytes of the file IFF file
     byte[] bytes;
+
+    // This stores all the offsets or index of chunks as well as useful information regarding them with the ChunkHeader object.
     public List<ChunkHeader> offsets = new List<ChunkHeader>();
 
     public IFFParser(byte[] bytes) {
         this.bytes = bytes;
         FindStartChunkOffset();
-        Console.WriteLine("foo");
     }
 
+    // Grabs all the files/data and coverts them into their own files,
+    // separating the data and chuncks allowing for other programs to parse the data freely.
+    // Returns the IFFFileManage object store the individual files.
     public IFFFileManager Parse() {
 
         var fileMananger = new IFFFileManager();
@@ -182,6 +186,12 @@ class IFFParser
 
     // ---Utils---
 
+    public static string Reverse(string s) {
+        char[] charArray = s.ToCharArray();
+        Array.Reverse(charArray);
+        return new string(charArray);
+    }
+
     int DataChunksBySize(int size, int chunkSize = 4096) {
 
         var total = size / (chunkSize - 20);
@@ -215,6 +225,5 @@ class IFFParser
     string BytesToStringReversed(int offset, int length) {
         return Reverse(System.Text.Encoding.Default.GetString(bytes, offset, length));
     }
-
 
 }
