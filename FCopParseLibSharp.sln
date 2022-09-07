@@ -3,7 +3,14 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32819.101
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FCopParseLibSharp", "FCopParseLibSharp\FCopParseLibSharp.csproj", "{27F4AB38-9C51-4D44-8BF9-62A301B2D545}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FCopParseLibSharp", "FCopParseLibSharp\FCopParseLibSharp.csproj", "{27F4AB38-9C51-4D44-8BF9-62A301B2D545}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FCopParseLibSharpV2", "FCopParseLibSharpV2\FCopParseLibSharpV2.csproj", "{44A85316-92C2-484D-A6F7-B0482BA1638F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E8DF995C-88D5-4F2E-82B4-58F17BDC39BC}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +22,10 @@ Global
 		{27F4AB38-9C51-4D44-8BF9-62A301B2D545}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{27F4AB38-9C51-4D44-8BF9-62A301B2D545}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{27F4AB38-9C51-4D44-8BF9-62A301B2D545}.Release|Any CPU.Build.0 = Release|Any CPU
+		{44A85316-92C2-484D-A6F7-B0482BA1638F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{44A85316-92C2-484D-A6F7-B0482BA1638F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{44A85316-92C2-484D-A6F7-B0482BA1638F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{44A85316-92C2-484D-A6F7-B0482BA1638F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
