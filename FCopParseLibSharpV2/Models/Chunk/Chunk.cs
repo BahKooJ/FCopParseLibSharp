@@ -5,7 +5,7 @@
   /// </summary>
   public abstract class Chunk
   {
-    public readonly int HeaderLenght = 20;
+    public int HeaderLenght { get; protected set; } = 20;
 
     public int Index { get; set; }
     //public string FourCC { get; set; }

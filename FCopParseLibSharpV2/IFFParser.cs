@@ -21,9 +21,6 @@ class IFFParser
     public const string MSIC = "MSIC";
   }
 
-  // The normal length of a chunk header.
-  const int chunkHeaderLength = 20;
-
   // This stores all the offsets or index of chunks as well as useful information regarding them with the ChunkHeader object.
   public List<Chunk> chunks = new List<Chunk>();
 
@@ -35,76 +32,72 @@ class IFFParser
   // Grabs all the files/data and coverts them into their own files,
   // separating the data and chuncks allowing for other programs to parse the data freely.
   // Returns the IFFFileManage object store the individual files.
-  public IFFFileManager Parse()
+  public IFFFileManager Parse(byte[] bytes)
   {
     var fileMananger = new IFFFileManager();
 
-    IFFDataFile file = null;
+    IFFDataFile lastFileFound = null;
     int dataChunksToAdd = 0;
-    string subFileName;
+    string lastFileNameFound = string.Empty;
 
     foreach (var chunk in chunks)
     {
       switch (chunk)
       {
-        case SWVR: subFileName = ((SWVR)chunk).FileName; break;
+        case SWVR:
+          lastFileNameFound = ((SWVR)chunk).FileName;
+          break;
 
+        //What if lastFileNameFound is not about this MSIC chunk but some other file.
+        //This logic works only if the chunks are ordered, what I'm saying is that this can cause problems.
+        //Also you're not resetting lastFileNameFound like you do with SDAT. So this can cause you to apply the same lastFileNameFound
+        //to multiple files found later.
         case MSIC:
-          if (fileMananger.music == null)
-          {
-            fileMananger.music = new KeyValuePair<string, List<byte>>(subFileName!, new List<byte>());
-          }
-          else
-          {
-            //todo: Magic number 28 is the size of the music header, there are two numbers after the header that are unknown
-            fileMananger.music.Value.Value.AddRange(CopyOfRange(chunk.Index + 28, chunk.Index + chunk.Size).ToList());
-          }
+          var content = bytes.CopyOfRange(chunk.Index + chunk.HeaderLenght, chunk.Index + chunk.Size);
+          fileMananger.music = new Music(content, lastFileNameFound);
           break;
       }
 
       switch (chunk.Type)
       {
         case FourCC.SHDR:
-          if (file == null && chunk.subChunk != null)
+          if (lastFileFound == null && chunk.subChunk != null)
           {
             var shdrFile = (SHDR)chunk.subChunk;
 
-            file = new IFFDataFile(new List<byte>(), shdrFile.FourCCData, shdrFile.DataID, shdrFile.ActData.ToList());
+            //Prepare file for next sdat found.
+            //Could be possible for SHDR chunks to have a SDAT subchunk?
+            lastFileFound = new IFFDataFile(shdrFile.FourCCData, shdrFile.DataID, shdrFile.ActData);
             dataChunksToAdd = DataChunksBySize(shdrFile.DataSize);
 
           }
           break;
 
+        //What if SDAT is not data about the last SHDR found but about some other chunk?
+        //This logic works only if the chunks are ordered, what I'm saying is that this can cause problems.
         case FourCC.SDAT:
-          if (file != null && dataChunksToAdd != 0)
+          if (lastFileFound != null && dataChunksToAdd != 0)
           {
-            file.data.AddRange(CopyOfRange(chunk.Index + chunkHeaderLength, chunk.Index + chunk.Size).ToList());
+            //dataChunksToAdd can be = 1? The logic is not clear at first sight. I suggest to explain with comments why this is the case.
+            lastFileFound.data = bytes.CopyOfRange(chunk.Index + chunk.HeaderLenght, chunk.Index + chunk.Size);
             dataChunksToAdd--;
 
             if (dataChunksToAdd == 0)
             {
-
-              if (subFileName != null)
+              if (lastFileNameFound != null) //lastFileNameFound is never set to null. As soon as you find a MSIC chunk, all other SDAT found after that will always enter this if.
               {
-
-                if (!fileMananger.subFiles.ContainsKey(subFileName))
+                if (!fileMananger.subFiles.ContainsKey(lastFileNameFound))
                 {
-                  fileMananger.subFiles[subFileName] = new List<IFFDataFile> { file };
-                }
-                else
-                {
-                  fileMananger.subFiles[subFileName].Add(file);
+                  fileMananger.subFiles.Add(lastFileNameFound, new List<IFFDataFile>()); //What if MSIC was found and lastFileFound was not reset
                 }
 
-                file = null;
-
+                fileMananger.subFiles[lastFileNameFound].Add(lastFileFound);
+                lastFileFound = null;
               }
               else
               {
-
-                fileMananger.files.Add(file);
-                file = null;
-
+                fileMananger.files.Add(lastFileFound);
+                lastFileFound = null;
               }
             }
           }
@@ -136,36 +129,14 @@ class IFFParser
   }
 
   // ---Utils---
-
-  public static string Reverse(string s)
+  //Is 20 the header size? If yes, you've got a problem when using DataChunksBySize with music files which have a lenght of 28.
+  static int DataChunksBySize(int size)
   {
-    char[] charArray = s.ToCharArray();
-    Array.Reverse(charArray);
-    return new string(charArray);
-  }
-
-  int DataChunksBySize(int size, int chunkSize = 4096)
-  {
-
-    var total = size / (chunkSize - 20);
-    if (size % (chunkSize - 20) != 0)
+    var total = size / (4096 - 20);
+    if (size % (4096 - 20) != 0)
     {
       total++;
     }
     return total;
-
-  }
-
-  byte[] CopyOfRange(int start, int end)
-  {
-
-    var length = end - start;
-
-    var total = new byte[length];
-
-    Array.Copy(bytes, start, total, 0, length);
-
-    return total;
-
   }
 }

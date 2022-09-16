@@ -4,6 +4,7 @@
   {
     public MSIC(int index, int size, string type) : base(index, size, type)
     {
+      HeaderLenght = 28;
     }
   }
 }
