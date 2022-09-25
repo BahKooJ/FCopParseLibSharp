@@ -493,12 +493,12 @@ class IFFParser
             }
 
             offset += size;
-            Console.WriteLine(
-                offsets.Last().index.ToString() + " " +
-                offsets.Last().fourCCDeclaration + " " +
-                offsets.Last().chunkSize.ToString() + " " +
-                offsets.Last().fourCCType
-                );
+            //Console.WriteLine(
+            //    offsets.Last().index.ToString() + " " +
+            //    offsets.Last().fourCCDeclaration + " " +
+            //    offsets.Last().chunkSize.ToString() + " " +
+            //    offsets.Last().fourCCType
+            //    );
 
         }
         

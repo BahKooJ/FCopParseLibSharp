@@ -2,11 +2,17 @@
 
 var parser = new IFFParser(File.ReadAllBytes("Mp"));
 
-// var level = new FCopLevel(parser.parsedData);
+var level = new FCopLevel(parser.parsedData);
 
-parser.Compile();
+foreach (var i in level.sections[0].thirdSectionBitfields) {
+    Console.WriteLine(i.number1.ToString() + " " + i.number2.ToString());
+}
 
-File.WriteAllBytes("Mp MOD", parser.bytes);
+//level.sections[0].Compile();
+
+ //parser.Compile();
+
+ //File.WriteAllBytes("Mp MOD", parser.bytes);
 
 Console.WriteLine("bonk");
 
@@ -45,6 +51,12 @@ class Utils {
         bits.CopyTo(array, 0);
         return array[0];
 
+    }
+
+    public static byte[] BitArrayToByteArray(BitArray bits) {
+        byte[] ret = new byte[bits.Length / 8];
+        bits.CopyTo(ret, 0);
+        return ret;
     }
 
     public static int BytesToInt(byte[] bytes, int offset) {

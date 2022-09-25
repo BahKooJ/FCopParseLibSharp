@@ -4,7 +4,7 @@ using System.Collections;
 // =WIP=
 class FCopLevel {
 
-    List<FCopLevelSectionParser> sections = new List<FCopLevelSectionParser> ();
+    public List<FCopLevelSectionParser> sections = new List<FCopLevelSectionParser> ();
 
     public FCopLevel(IFFFileManager fileManager) {
 
@@ -44,15 +44,15 @@ class FCopLevelSectionParser {
 
     IFFDataFile rawFile;
 
-    short textureCordCount;
-    short tileCount;
+    public short textureCordCount;
+    public short tileCount;
 
 
-    List<HeightPoint3> heightPoints = new List<HeightPoint3>();
-    List<ThirdSectionBitfield> thirdSectionBitfields = new List<ThirdSectionBitfield>();
-    List<Tile> tiles = new List<Tile>();
-    List<TextureCoordinate> textureCoordinates = new List<TextureCoordinate>();
-    List<TileGraphics> tileGraphics = new List<TileGraphics>();
+    public List<HeightPoint3> heightPoints = new List<HeightPoint3>();
+    public List<ThirdSectionBitfield> thirdSectionBitfields = new List<ThirdSectionBitfield>();
+    public List<Tile> tiles = new List<Tile>();
+    public List<TextureCoordinate> textureCoordinates = new List<TextureCoordinate>();
+    public List<TileGraphics> tileGraphics = new List<TileGraphics>();
 
 
     int offset = 0;
@@ -71,11 +71,9 @@ class FCopLevelSectionParser {
         ParseTextures();
         ParseTileGraphics();
 
-        Console.WriteLine("foo");
-
     }
 
-    void Compile() {
+    public void Compile() {
 
         List<byte> compiledFile = new List<byte> ();
 
@@ -87,6 +85,73 @@ class FCopLevelSectionParser {
 
         }
 
+        compiledFile.Add(0);
+
+        compiledFile.AddRange(
+            rawFile.data.GetRange(renderDistanceOffset, rednerDistanceLength)
+            );
+
+        compiledFile.AddRange(BitConverter.GetBytes(tileCount));
+
+        foreach (ThirdSectionBitfield bitfield in thirdSectionBitfields) {
+
+            var bits64 = new BitArray(new int[] { bitfield.number1, bitfield.number2 });
+
+            var bits16 = new BitArray(16);
+
+            bits16[0] = bits64[0];
+            bits16[1] = bits64[1];
+            bits16[2] = bits64[2];
+            bits16[4] = bits64[3];
+            bits16[4] = bits64[4];
+            bits16[5] = bits64[5];
+            bits16[6] = bits64[32];
+            bits16[7] = bits64[33];
+            bits16[8] = bits64[34];
+            bits16[9] = bits64[35];
+            bits16[10] = bits64[36];
+            bits16[11] = bits64[37];
+            bits16[12] = bits64[38];
+            bits16[13] = bits64[39];
+            bits16[14] = bits64[40];
+            bits16[15] = bits64[41];
+
+            compiledFile.AddRange(Utils.BitArrayToByteArray(bits16));
+
+        }
+
+        compiledFile.AddRange(rawFile.data.GetRange(1484,4));
+
+        foreach (Tile tile in tiles) {
+            compiledFile.AddRange(tile.data);
+        }
+
+        foreach (TextureCoordinate texture in textureCoordinates) {
+            compiledFile.AddRange(BitConverter.GetBytes((short)texture.topLeftIndex));
+            compiledFile.AddRange(BitConverter.GetBytes((short)texture.topRightIndex));
+            compiledFile.AddRange(BitConverter.GetBytes((short)texture.bottomRightIndex));
+            compiledFile.AddRange(BitConverter.GetBytes((short)texture.bottomLeftIndex));
+
+        }
+
+        foreach (TileGraphics graphic in tileGraphics) {
+            compiledFile.AddRange(graphic.data);
+        }
+
+        var header = new List<byte>();
+
+        header.AddRange(fourCC);
+
+        header.AddRange(BitConverter.GetBytes(12 + compiledFile.Count()));
+
+        header.AddRange(rawFile.data.GetRange(8,2));
+
+        header.AddRange(BitConverter.GetBytes(textureCordCount));
+
+        header.AddRange(compiledFile);
+
+        rawFile.data = header;
+        rawFile.modified = true;
 
     }
 
@@ -216,9 +281,9 @@ struct HeightPoint3 {
 struct ThirdSectionBitfield {
 
     // 6 bit
-    int number1;
+    public int number1;
     // 10 bit
-    int number2;
+    public int number2;
 
     public ThirdSectionBitfield(int number1, int number2) {
         this.number1 = number1;
@@ -229,7 +294,7 @@ struct ThirdSectionBitfield {
 
 struct Tile {
 
-    byte[] data;
+    public byte[] data;
 
     public Tile(byte[] data) {
         this.data = data;
@@ -239,10 +304,10 @@ struct Tile {
 
 struct TextureCoordinate {
 
-    int topLeftIndex;
-    int topRightIndex;
-    int bottomRightIndex;
-    int bottomLeftIndex;
+    public int topLeftIndex;
+    public int topRightIndex;
+    public int bottomRightIndex;
+    public int bottomLeftIndex;
 
     public TextureCoordinate(int topLeftIndex, int topRightIndex, int bottomRightIndex, int bottomLeftIndex) {
         this.topLeftIndex = topLeftIndex;
@@ -255,7 +320,7 @@ struct TextureCoordinate {
 
 struct TileGraphics {
 
-    byte[] data;
+    public byte[] data;
 
     public TileGraphics(byte[] data) {
         this.data = data;
