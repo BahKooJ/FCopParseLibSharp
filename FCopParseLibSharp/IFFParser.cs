@@ -1,8 +1,13 @@
 ﻿
 // This object is what indexes the IFF files determines where chunks are located.
 // It stores chunk information with the ChunkHeader object.
+using System.Text;
+
 class IFFParser
 {
+
+    // ---Constants---
+
     // consants for important fourCCs.
     // Other fourCCs can be ignored as they're just a description of what the item is.
     // However it is import to test for these specifically to know how to parse the chunk.
@@ -14,26 +19,71 @@ class IFFParser
         public const string SDAT = "SDAT";
         public const string SWVR = "SWVR";
         public const string MSIC = "MSIC";
+
+        public readonly static List<byte> CTRLbytes = new List<byte>() { 76, 82, 84, 67 };
+        public readonly static List<byte> SHOCbytes = new List<byte>() { 67, 79, 72, 83 };
+        public readonly static List<byte> SDATbytes = new List<byte>() { 84, 65, 68, 83 };
+        public readonly static List<byte> SHDRbytes = new List<byte>() { 82, 68, 72, 83 };
+        public readonly static List<byte> FILLbytes = new List<byte>() { 76, 76, 73, 70 };
+        public readonly static List<byte> SWVRbytes = new List<byte>() { 82, 86, 87, 83 };
+        public readonly static List<byte> FILEbytes = new List<byte>() { 69, 76, 73, 70 };
+        public readonly static List<byte> MSICbytes = new List<byte>() { 67, 73, 83, 77 };
     }
 
     // The normal length of a chunk header.
     const int chunkHeaderLength = 20;
 
+    // The maximum size of a SDAT chunk
+    const int dataChunkSize = 4096;
+
+    // The maximum size of a SDAT chunk not including the size of the header
+    const int dataChunkSizeWithoutHeader = 4076;
+
+    // The length of the MSIC chunk
+    const int musicHeaderLength = 28;
+
+    // The maximum size of a MSIC chunk
+    const int musicChunkSize = 24540;
+
+    // The maximum size of a MSIC chunk not including the size of the header
+    const int musicChunkSizeWithoutHeader = 24512;
+
+    const int musicLoopNumberIncrease = 65536;
+
+    const int randomMusicNumber = 12256;
+
+    // All chunks in the IFF file must fill a perfeck 24KB size.
+    // If a chunk exends a 24KB section, a FILL chunk must be made to fill in the remaining space
+    const int iffFileSectionSize = 24576;
+
+    // ---Parsing---
+
+    public IFFFileManager parsedData;
+
     // Bytes of the file IFF file
-    byte[] bytes;
+    public byte[] bytes = Array.Empty<byte>();
 
     // This stores all the offsets or index of chunks as well as useful information regarding them with the ChunkHeader object.
     public List<ChunkHeader> offsets = new List<ChunkHeader>();
 
+    // If given bytes, the object knows the data needs to be parsed
     public IFFParser(byte[] bytes) {
         this.bytes = bytes;
         FindStartChunkOffset();
+        parsedData = Parse();
+    }
+
+    // If given an IFFFileManager, the object knows the data needs to be compiled
+    public IFFParser(IFFFileManager parsedData) {
+        this.parsedData = parsedData;
     }
 
     // Grabs all the files/data and coverts them into their own files,
     // separating the data and chuncks allowing for other programs to parse the data freely.
     // Returns the IFFFileManage object store the individual files.
-    public IFFFileManager Parse() {
+    // TODO: This does not account for fills equal to 4 bytes!
+    // =WIP=
+    IFFFileManager Parse() {
 
         var fileMananger = new IFFFileManager();
 
@@ -54,6 +104,8 @@ class IFFParser
 
                     fileMananger.music = new KeyValuePair<string, List<byte>>(subFileName!, new List<byte>());
 
+                    fileMananger.music.Value.Value.AddRange(CopyOfRange(header.index + 28, header.index + header.chunkSize).ToList());
+
                 } else {
 
                     //todo: Magic number 28 is the size of the music header, there are two numbers after the header that are unknown
@@ -68,7 +120,7 @@ class IFFParser
 
                 if (file == null && header.fileHeader != null) {
 
-                    file = new IFFDataFile(new List<byte>(), header.fileHeader.fourCCData, header.fileHeader.dataID, header.fileHeader.actData.ToList());
+                    file = new IFFDataFile(header.fileHeader.startNumber, new List<byte>(), header.fileHeader.fourCCData, header.fileHeader.dataID, header.fileHeader.actData.ToList());
                     dataChunksToAdd = DataChunksBySize(header.fileHeader.dataSize);
 
                 }
@@ -108,10 +160,272 @@ class IFFParser
 
     }
 
+    // =VERY WIP=
+    public void Compile() {
+
+        List<byte> compiledFile = new List<byte>();
+
+        // The files size starts off as 24 to fill the space for a future CTRL chunk
+        var current24kSectionSize = 24;
+
+        void FILLCheck(int nextDataSize) {
+
+            if (current24kSectionSize == iffFileSectionSize) {
+                current24kSectionSize = 0;
+                return;
+            }
+
+            if (current24kSectionSize + nextDataSize > iffFileSectionSize) {
+
+                var difference = iffFileSectionSize - current24kSectionSize;
+
+                // TODO: Change to <= 8 check
+                if (difference == 4) {
+                    compiledFile.AddRange(FourCC.FILLbytes);
+                }
+
+                compiledFile.AddRange(FourCC.FILLbytes);
+                compiledFile.AddRange(BitConverter.GetBytes(difference));
+
+                foreach (int i in Enumerable.Range(0, difference - 8)) {
+                    compiledFile.Add(0);
+                }
+
+                current24kSectionSize = 0;
+
+            }
+
+        }
+
+        void FILLRemain() {
+
+            if (current24kSectionSize == iffFileSectionSize) {
+                current24kSectionSize = 0;
+                return;
+            }
+
+            var difference = iffFileSectionSize - current24kSectionSize;
+
+            // TODO: Change to <= 8 check
+            if (difference == 4) {
+                compiledFile.AddRange(FourCC.FILLbytes);
+            }
+
+            compiledFile.AddRange(FourCC.FILLbytes);
+            compiledFile.AddRange(BitConverter.GetBytes(difference));
+
+            foreach (int i in Enumerable.Range(0, difference - 8)) {
+                compiledFile.Add(0);
+            }
+
+            current24kSectionSize = 0;
+
+
+        }
+
+        void CompileDataFile(IFFDataFile file) {
+
+            List<byte> dataHeader = new List<byte>();
+
+            var dataSize = file.data.Count();
+
+            var headerSize = 36 + file.additionalData.Count();
+
+            dataHeader.AddRange(FourCC.SHOCbytes);
+            dataHeader.AddRange(BitConverter.GetBytes(headerSize));
+            dataHeader.AddRange(new List<byte>() { 0, 0, 0, 0, 0, 0, 0, 0 });
+            dataHeader.AddRange(FourCC.SHDRbytes);
+            dataHeader.AddRange(BitConverter.GetBytes(file.startNumber));
+            dataHeader.AddRange(Encoding.ASCII.GetBytes(Reverse(file.dataFourCC)));
+            dataHeader.AddRange(BitConverter.GetBytes(file.dataID));
+            dataHeader.AddRange(BitConverter.GetBytes(dataSize));
+            dataHeader.AddRange(file.additionalData);
+
+            FILLCheck(headerSize);
+            current24kSectionSize += headerSize;
+            compiledFile.AddRange(dataHeader);
+
+            var chunkedDataOffset = 0;
+
+            foreach (int i in Enumerable.Range(0, DataChunksBySize(dataSize))) {
+
+                if (chunkedDataOffset + dataChunkSizeWithoutHeader > dataSize) {
+
+                    var chunkHeader = new List<byte>();
+
+                    var chunkSize = dataSize - chunkedDataOffset;
+
+                    chunkHeader.AddRange(FourCC.SHOCbytes);
+                    chunkHeader.AddRange(BitConverter.GetBytes(chunkSize + chunkHeaderLength));
+                    chunkHeader.AddRange(new List<byte>() { 0, 0, 0, 0, 0, 0, 0, 0 });
+                    chunkHeader.AddRange(FourCC.SDATbytes);
+
+                    FILLCheck(chunkSize + chunkHeaderLength);
+                    current24kSectionSize += chunkSize + chunkHeaderLength;
+                    compiledFile.AddRange(chunkHeader);
+                    compiledFile.AddRange(file.data.GetRange(chunkedDataOffset, chunkSize));
+
+                } else {
+
+                    var chunkHeader = new List<byte>();
+
+                    chunkHeader.AddRange(FourCC.SHOCbytes);
+                    chunkHeader.AddRange(BitConverter.GetBytes(dataChunkSize));
+                    chunkHeader.AddRange(new List<byte>() { 0, 0, 0, 0, 0, 0, 0, 0 });
+                    chunkHeader.AddRange(FourCC.SDATbytes);
+
+                    FILLCheck(dataChunkSize);
+                    current24kSectionSize += dataChunkSize;
+                    compiledFile.AddRange(chunkHeader);
+                    compiledFile.AddRange(file.data.GetRange(chunkedDataOffset, dataChunkSizeWithoutHeader));
+
+                    chunkedDataOffset += dataChunkSizeWithoutHeader;
+
+                }
+
+            }
+
+        }
+
+        var dataFileSize = 0;
+        var subFileSize = 0;
+        var musicSize = 0;
+
+        foreach (var file in parsedData.files) {
+
+            CompileDataFile(file);
+
+        }
+
+        FILLRemain();
+
+        dataFileSize = compiledFile.Count() + 24;
+
+        foreach (var subFile in parsedData.subFiles) {
+
+            List<byte> subFileHeader = new List<byte>();
+
+            subFileHeader.AddRange(FourCC.SWVRbytes);
+            subFileHeader.AddRange(BitConverter.GetBytes(36));
+            subFileHeader.AddRange(new List<byte>() { 0, 0, 0, 0, 0, 0, 0, 0 });
+            subFileHeader.AddRange(FourCC.FILEbytes);
+            subFileHeader.AddRange(Encoding.ASCII.GetBytes(subFile.Key));
+
+            // After the file name there's some data that I don't know what does yet, so this is just filling in the space
+            while (subFileHeader.Count < 36) {
+                subFileHeader.Add(0);
+            }
+
+            // No need to check for fills, because the remainder was already filled
+            compiledFile.AddRange(subFileHeader);
+            current24kSectionSize += 36;
+
+            foreach (var file in subFile.Value) {
+
+                CompileDataFile(file);
+
+            }
+
+            FILLRemain();
+
+        }
+
+        subFileSize = compiledFile.Count() - dataFileSize;
+
+        List<byte> musicfileHeader = new List<byte>();
+
+        musicfileHeader.AddRange(FourCC.SWVRbytes);
+        musicfileHeader.AddRange(BitConverter.GetBytes(36));
+        musicfileHeader.AddRange(new List<byte>() { 0, 0, 0, 0, 0, 0, 0, 0 });
+        musicfileHeader.AddRange(FourCC.FILEbytes);
+        musicfileHeader.AddRange(Encoding.ASCII.GetBytes(parsedData.music!.Value.Key));
+
+        // After the file name there's some data that I don't know what does yet, so this is just filling in the space
+        while (musicfileHeader.Count < 36) {
+            musicfileHeader.Add(0);
+        }
+
+        compiledFile.AddRange(musicfileHeader);
+        current24kSectionSize += 36;
+
+        var musicDataSize = parsedData.music.Value.Value.Count();
+
+        var musicChunkAmount = DataChunksBySize(musicDataSize, musicChunkSize, musicHeaderLength);
+
+        var chunkedMusicOffset = 0;
+
+        var musicLoopNumberIteration = musicChunkAmount;
+
+        foreach (int i in Enumerable.Range(0, musicChunkAmount)) {
+
+            if (chunkedMusicOffset + musicChunkSizeWithoutHeader > musicDataSize) {
+
+                var chunkHeader = new List<byte>();
+
+                var chunkSize = musicDataSize - chunkedMusicOffset;
+
+                chunkHeader.AddRange(FourCC.MSICbytes);
+                chunkHeader.AddRange(BitConverter.GetBytes(chunkSize + musicHeaderLength));
+                chunkHeader.AddRange(new List<byte>() { 0, 0, 0, 0, 0, 0, 0, 0 });
+                chunkHeader.AddRange(FourCC.MSICbytes);
+                chunkHeader.AddRange(BitConverter.GetBytes(musicLoopNumberIteration));
+                chunkHeader.AddRange(BitConverter.GetBytes(randomMusicNumber));
+
+                FILLCheck(chunkSize + musicHeaderLength);
+                current24kSectionSize += chunkSize + musicHeaderLength;
+                compiledFile.AddRange(chunkHeader);
+                compiledFile.AddRange(parsedData.music.Value.Value.GetRange(chunkedMusicOffset, chunkSize));
+
+                musicLoopNumberIteration += musicLoopNumberIncrease;
+
+            } else {
+
+                var chunkHeader = new List<byte>();
+
+                chunkHeader.AddRange(FourCC.MSICbytes);
+                chunkHeader.AddRange(BitConverter.GetBytes(musicChunkSize));
+                chunkHeader.AddRange(new List<byte>() { 0, 0, 0, 0, 0, 0, 0, 0 });
+                chunkHeader.AddRange(FourCC.MSICbytes);
+                chunkHeader.AddRange(BitConverter.GetBytes(musicLoopNumberIteration));
+                chunkHeader.AddRange(BitConverter.GetBytes(randomMusicNumber));
+
+                FILLCheck(musicChunkSize);
+                current24kSectionSize += musicChunkSize;
+                compiledFile.AddRange(chunkHeader);
+                compiledFile.AddRange(parsedData.music.Value.Value.GetRange(chunkedMusicOffset, musicChunkSizeWithoutHeader));
+
+                chunkedMusicOffset += dataChunkSizeWithoutHeader;
+                musicLoopNumberIteration += musicLoopNumberIncrease;
+            }
+
+        }
+
+        FILLRemain();
+
+        musicSize = compiledFile.Count() - (dataFileSize + subFileSize);
+
+        var ctrlChunk = new List<byte>();
+
+        ctrlChunk.AddRange(FourCC.CTRLbytes);
+        ctrlChunk.AddRange(BitConverter.GetBytes(24));
+        ctrlChunk.AddRange(new List<byte>() { 0, 0, 0, 0 });
+        ctrlChunk.AddRange(BitConverter.GetBytes(musicSize));
+        ctrlChunk.AddRange(BitConverter.GetBytes(subFileSize));
+        ctrlChunk.AddRange(BitConverter.GetBytes(dataFileSize));
+
+        ctrlChunk.AddRange(compiledFile);
+
+        bytes = ctrlChunk.ToArray();
+
+        FindStartChunkOffset();
+
+    }
 
     // ---Indexing---
 
     void FindStartChunkOffset() {
+
+        offsets.Clear();
 
         int offset = 0;
 
@@ -179,6 +493,12 @@ class IFFParser
             }
 
             offset += size;
+            Console.WriteLine(
+                offsets.Last().index.ToString() + " " +
+                offsets.Last().fourCCDeclaration + " " +
+                offsets.Last().chunkSize.ToString() + " " +
+                offsets.Last().fourCCType
+                );
 
         }
         
@@ -192,10 +512,10 @@ class IFFParser
         return new string(charArray);
     }
 
-    int DataChunksBySize(int size, int chunkSize = 4096) {
+    int DataChunksBySize(int size, int chunkSize = 4096, int headerLength = 20) {
 
-        var total = size / (chunkSize - 20);
-        if (size % (chunkSize - 20) != 0) {
+        var total = size / (chunkSize - headerLength);
+        if (size % (chunkSize - headerLength) != 0) {
             total++;
         }
         return total;

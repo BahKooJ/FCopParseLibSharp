@@ -18,11 +18,14 @@ class IFFFileManager {
 class IFFDataFile {
 
     public List<byte> data;
+    public int startNumber;
     public string dataFourCC;
     public int dataID;
     public List<byte> additionalData;
+    public bool modified = false;
 
-    public IFFDataFile(List<byte> data, string dataFourCC, int dataID, List<byte> additionalData) {
+    public IFFDataFile(int startNumber, List<byte> data, string dataFourCC, int dataID, List<byte> additionalData) {
+        this.startNumber = startNumber;
         this.data = data;
         this.dataFourCC = dataFourCC;
         this.dataID = dataID;
