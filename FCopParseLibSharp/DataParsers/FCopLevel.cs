@@ -1,329 +1,559 @@
 ﻿
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
-// =WIP=
-class FCopLevel {
+namespace FCopParser {
 
-    public List<FCopLevelSectionParser> sections = new List<FCopLevelSectionParser> ();
+    // =WIP=
+    public class FCopLevel {
 
-    public FCopLevel(IFFFileManager fileManager) {
+        public List<List<int>> layout;
 
-        var rawFiles = fileManager.files.Where( file => {
+        public List<FCopLevelSectionParser> sections = new List<FCopLevelSectionParser>();
 
-            return file.dataFourCC == "Ctil";
+        public List<FCopTexture> textures = new List<FCopTexture>();
 
-        }).ToList();
+        public FCopLevel(IFFFileManager fileManager) {
 
-        foreach (var rawFile in rawFiles) {
-            sections.Add(new FCopLevelSectionParser(rawFile));
+            var rawCtilFiles = fileManager.files.Where(file => {
+
+                return file.dataFourCC == "Ctil";
+
+            }).ToList();
+
+            var rawBitmapFiles = fileManager.files.Where(file => {
+
+                return file.dataFourCC == "Cbmp";
+
+            }).ToList();
+
+            foreach (var rawFile in rawCtilFiles) {
+                sections.Add(new FCopLevelSectionParser(rawFile));
+            }
+
+            foreach (var rawFile in rawBitmapFiles) {
+                textures.Add(new FCopTexture(rawFile));
+            }
+
+            layout = FCopLevelLayoutParser.Parse(fileManager.files.First(file => {
+
+                return file.dataFourCC == "Cptc";
+
+            }));
+
         }
 
     }
 
-}
+    public class FCopLevelSection {
 
-class FCopLevelSectionParser {
+        public FCopLevel parent;
 
-    const int textureCordCountOffset = 10;
+        public const int heightMapWdith = 17;
 
-    const int heightMapOffset = 12;
-    const int heightMapLength = 867;
+        public List<HeightPoint> heightMap = new List<HeightPoint>();
 
-    const int renderDistanceOffset = 880;
-    const int rednerDistanceLength = 90;
+        public List<TileColumn> tileColumns = new List<TileColumn>();
 
-    const int tileCountOffset = 970;
+        public List<int> textureCoordinates = new List<int>();
 
-    const int thirdSectionOffset = 972;
-    const int thirdSectionLength = 512;
+        public List<TileGraphics> tileGraphics = new List<TileGraphics>();
 
-    const int tileArrayOffset = 1488;
+        public FCopLevelSection(FCopLevelSectionParser parser, FCopLevel parent) {
 
-    static List<byte> fourCC = new List<byte> () { 116, 99, 101, 83 };
+            this.textureCoordinates = parser.textureCoordinates;
+            this.tileGraphics = parser.tileGraphics;
 
+            foreach (var parsePoint in parser.heightPoints) {
+                heightMap.Add(new HeightPoint(parsePoint));
+            }
 
-    IFFDataFile rawFile;
+            var count = 0;
+            var x = 0;
+            var y = 0;
+            foreach (var parseColumn in parser.thirdSectionBitfields) {
 
-    public short textureCordCount;
-    public short tileCount;
+                var parsedTiles = parser.tiles.GetRange(parseColumn.number2, parseColumn.number1);
 
+                var tiles = new List<Tile>();
 
-    public List<HeightPoint3> heightPoints = new List<HeightPoint3>();
-    public List<ThirdSectionBitfield> thirdSectionBitfields = new List<ThirdSectionBitfield>();
-    public List<Tile> tiles = new List<Tile>();
-    public List<TextureCoordinate> textureCoordinates = new List<TextureCoordinate>();
-    public List<TileGraphics> tileGraphics = new List<TileGraphics>();
+                foreach (var parsedTile in parsedTiles) {
+                    tiles.Add(new Tile(parsedTile));
+                }
 
+                var heights = new List<HeightPoint>();
 
-    int offset = 0;
+                heights.Add(GetHeightPoint(x, y));
+                heights.Add(GetHeightPoint(x + 1, y));
+                heights.Add(GetHeightPoint(x, y + 1));
+                heights.Add(GetHeightPoint(x + 1, y + 1));
 
-    public FCopLevelSectionParser(IFFDataFile rawFile) {
-        this.rawFile = rawFile;
+                tileColumns.Add(new TileColumn(x, y, tiles, heights));
 
-        textureCordCount = Utils.BytesToShort(rawFile.data.ToArray(), textureCordCountOffset);
+                x++;
+                if (x == 16) {
+                    y++;
+                    x = 0;
+                }
 
-        ParseHeightPoints();
+                count++;
 
-        tileCount = Utils.BytesToShort(rawFile.data.ToArray(), tileCountOffset);
+            }
 
-        ParseThirdSection();
-        ParseTiles();
-        ParseTextures();
-        ParseTileGraphics();
+            this.parent = parent;
+
+        }
+
+        public HeightPoint GetHeightPoint(int x, int y) {
+            return heightMap[(y * heightMapWdith) + x];
+        }
 
     }
 
-    public void Compile() {
+    public class HeightPoint {
+        public float height1;
+        public float height2;
+        public float height3;
 
-        List<byte> compiledFile = new List<byte> ();
-
-        foreach (HeightPoint3 heightPoint3 in heightPoints) {
-
-            compiledFile.Add(heightPoint3.height1);
-            compiledFile.Add(heightPoint3.height2);
-            compiledFile.Add(heightPoint3.height3);
-
+        public HeightPoint(float height1, float height2, float height3) {
+            this.height1 = height1;
+            this.height2 = height2;
+            this.height3 = height3;
         }
 
-        compiledFile.Add(0);
-
-        compiledFile.AddRange(
-            rawFile.data.GetRange(renderDistanceOffset, rednerDistanceLength)
-            );
-
-        compiledFile.AddRange(BitConverter.GetBytes(tileCount));
-
-        foreach (ThirdSectionBitfield bitfield in thirdSectionBitfields) {
-
-            var bits64 = new BitArray(new int[] { bitfield.number1, bitfield.number2 });
-
-            var bits16 = new BitArray(16);
-
-            bits16[0] = bits64[0];
-            bits16[1] = bits64[1];
-            bits16[2] = bits64[2];
-            bits16[4] = bits64[3];
-            bits16[4] = bits64[4];
-            bits16[5] = bits64[5];
-            bits16[6] = bits64[32];
-            bits16[7] = bits64[33];
-            bits16[8] = bits64[34];
-            bits16[9] = bits64[35];
-            bits16[10] = bits64[36];
-            bits16[11] = bits64[37];
-            bits16[12] = bits64[38];
-            bits16[13] = bits64[39];
-            bits16[14] = bits64[40];
-            bits16[15] = bits64[41];
-
-            compiledFile.AddRange(Utils.BitArrayToByteArray(bits16));
-
+        public HeightPoint(HeightPoint3 parsedHeightPoint3) {
+            this.height1 = parsedHeightPoint3.height1 / 40.0f;
+            this.height2 = parsedHeightPoint3.height2 / 40.0f;
+            this.height3 = parsedHeightPoint3.height3 / 40.0f;
         }
 
-        compiledFile.AddRange(rawFile.data.GetRange(1484,4));
+        public float GetPoint(int index) {
 
-        foreach (Tile tile in tiles) {
-            compiledFile.AddRange(tile.data);
-        }
-
-        foreach (TextureCoordinate texture in textureCoordinates) {
-            compiledFile.AddRange(BitConverter.GetBytes((short)texture.topLeftIndex));
-            compiledFile.AddRange(BitConverter.GetBytes((short)texture.topRightIndex));
-            compiledFile.AddRange(BitConverter.GetBytes((short)texture.bottomRightIndex));
-            compiledFile.AddRange(BitConverter.GetBytes((short)texture.bottomLeftIndex));
-
-        }
-
-        foreach (TileGraphics graphic in tileGraphics) {
-            compiledFile.AddRange(graphic.data);
-        }
-
-        var header = new List<byte>();
-
-        header.AddRange(fourCC);
-
-        header.AddRange(BitConverter.GetBytes(12 + compiledFile.Count()));
-
-        header.AddRange(rawFile.data.GetRange(8,2));
-
-        header.AddRange(BitConverter.GetBytes(textureCordCount));
-
-        header.AddRange(compiledFile);
-
-        rawFile.data = header;
-        rawFile.modified = true;
-
-    }
-
-
-
-    void ParseHeightPoints() {
-
-        var bytes = rawFile.data.GetRange(heightMapOffset, heightMapLength);
-
-        var pointCount = 0;
-
-        List<byte> heights = new List<byte>();
-
-        foreach (byte b in bytes) {
-
-            heights.Add(b);
-
-            pointCount++;
-
-            if (pointCount == 3) {
-                heightPoints.Add(new HeightPoint3(
-                    heights[0],
-                    heights[1],
-                    heights[2]
-                    ));
-
-                pointCount = 0;
-                heights.Clear();
-
+            switch (index) {
+                case 1: return height1;
+                case 2: return height2;
+                case 3: return height3;
+                default: return 0;
             }
 
         }
 
     }
 
-    void ParseThirdSection() {
+    public class TileColumn {
 
-        var bytes = rawFile.data.GetRange(thirdSectionOffset, thirdSectionLength);
+        public int x;
+        public int y;
 
-        foreach (int i in Enumerable.Range(0, thirdSectionLength / 2)) {
+        public List<Tile> tiles;
 
-            var byteField = bytes.GetRange(i * 2, 2).ToArray();
+        public List<HeightPoint> heights;
 
-            var bitField = new BitArray(byteField);
-
-            var bitNumber6 = Utils.CopyBitsOfRange(bitField, 0, 6);
-            var bitNumber10 = Utils.CopyBitsOfRange(bitField, 6, 16);
-
-            thirdSectionBitfields.Add(new ThirdSectionBitfield(
-                Utils.BitsToInt(bitNumber6),
-                Utils.BitsToInt(bitNumber10)
-                ));
-
+        public TileColumn(int x, int y, List<Tile> tiles, List<HeightPoint> heights) {
+            this.x = x;
+            this.y = y;
+            this.tiles = tiles;
+            this.heights = heights;
         }
 
     }
 
-    void ParseTiles() {
+    public class Tile {
 
-        var bytes = rawFile.data.GetRange(tileArrayOffset, tileCount * 4);
+        public List<TileVertex> verticies;
+        public int textureIndex;
+        public int graphicsIndex;
 
-        foreach (int i in Enumerable.Range(0, tileCount)) {
+        public Rotation rotation;
 
-            tiles.Add(new Tile(bytes.GetRange(i * 4, 4).ToArray()));
+        public TileBitfield parsedTile;
 
+        public Tile(TileBitfield parsedTile) {
+
+            verticies = MeshType.VerticiesFromID(parsedTile.number5);
+            textureIndex = parsedTile.number2;
+
+            graphicsIndex = parsedTile.number6;
+
+            this.parsedTile = parsedTile;
         }
-
-        offset = tileArrayOffset + tileCount * 4;
 
     }
 
-    void ParseTextures() {
+    public class TileVertex {
 
-        var bytes = rawFile.data.GetRange(offset, textureCordCount * 2);
+        public int heightChannel;
 
-        var texturesCords = new List<int>();
+        public VertexPosition vertexPosition;
 
-        foreach (int i in Enumerable.Range(0, textureCordCount)) {
+        public TileVertex(int heightChannel, VertexPosition vertexPosition) {
+            this.heightChannel = heightChannel;
+            this.vertexPosition = vertexPosition;
+        }
 
-            texturesCords.Add(Utils.BytesToShort(bytes.ToArray(), i * 2));
+    }
 
-            if (texturesCords.Count() == 4) {
-                textureCoordinates.Add(new TextureCoordinate(
-                    texturesCords[0],
-                    texturesCords[1],
-                    texturesCords[2],
-                    texturesCords[3]
-                    ));
+    public enum VertexPosition {
+        TopLeft,
+        TopRight,
+        BottomLeft,
+        BottomRight
+    }
 
-                texturesCords.Clear();
+    public class FCopLevelSectionParser {
+
+        const int textureCordCountOffset = 10;
+
+        const int heightMapOffset = 12;
+        const int heightMapLength = 867;
+
+        const int renderDistanceOffset = 880;
+        const int rednerDistanceLength = 90;
+
+        const int tileCountOffset = 970;
+
+        const int thirdSectionOffset = 972;
+        const int thirdSectionLength = 512;
+
+        const int tileArrayOffset = 1488;
+
+        static List<byte> fourCC = new List<byte>() { 116, 99, 101, 83 };
+
+
+        public IFFDataFile rawFile;
+
+        public short textureCordCount;
+        public short tileCount;
+
+
+        public List<HeightPoint3> heightPoints = new List<HeightPoint3>();
+        public List<ThirdSectionBitfield> thirdSectionBitfields = new List<ThirdSectionBitfield>();
+        public List<TileBitfield> tiles = new List<TileBitfield>();
+        public List<int> textureCoordinates = new List<int>();
+        public List<TileGraphics> tileGraphics = new List<TileGraphics>();
+
+
+        int offset = 0;
+
+        public FCopLevelSectionParser(IFFDataFile rawFile) {
+            this.rawFile = rawFile;
+
+            textureCordCount = Utils.BytesToShort(rawFile.data.ToArray(), textureCordCountOffset);
+
+            ParseHeightPoints();
+
+            tileCount = Utils.BytesToShort(rawFile.data.ToArray(), tileCountOffset);
+
+            ParseThirdSection();
+            ParseTiles();
+            ParseTextures();
+            ParseTileGraphics();
+
+        }
+
+        public void Compile() {
+
+            List<byte> compiledFile = new List<byte>();
+
+            foreach (HeightPoint3 heightPoint3 in heightPoints) {
+
+                compiledFile.Add((byte)heightPoint3.height1);
+                compiledFile.Add((byte)heightPoint3.height2);
+                compiledFile.Add((byte)heightPoint3.height3);
+
+            }
+
+            compiledFile.Add(0);
+
+            compiledFile.AddRange(
+                rawFile.data.GetRange(renderDistanceOffset, rednerDistanceLength)
+                );
+
+            compiledFile.AddRange(BitConverter.GetBytes((short)tiles.Count));
+
+            foreach (ThirdSectionBitfield thirdSectionItem in thirdSectionBitfields) {
+
+                var bitFeild = new BitField(16, new List<BitNumber> {
+                    new BitNumber(6,thirdSectionItem.number1), new BitNumber(10,thirdSectionItem.number2)
+                });
+
+                compiledFile.AddRange(Utils.BitArrayToByteArray(bitFeild.Compile()));
+
+            }
+
+            compiledFile.AddRange(rawFile.data.GetRange(1484, 4));
+
+            foreach (TileBitfield tile in tiles) {
+
+                var bitFeild = new BitField(32, new List<BitNumber> {
+                    new BitNumber(1,tile.number1), new BitNumber(10,tile.number2), 
+                    new BitNumber(2,tile.number3), new BitNumber(2,tile.number4), 
+                    new BitNumber(7,tile.number5), new BitNumber(10,tile.number6)
+                });
+
+                compiledFile.AddRange(Utils.BitArrayToByteArray(bitFeild.Compile()));
+
+            }
+
+            foreach (int texture in textureCoordinates) {
+                compiledFile.AddRange(BitConverter.GetBytes((ushort)texture));
+            }
+
+            foreach (TileGraphics graphic in tileGraphics) {
+
+                var bitFeild = new BitField(16, new List<BitNumber> {
+                    new BitNumber(8,graphic.number1), new BitNumber(3,graphic.number2),
+                    new BitNumber(2,graphic.number3), new BitNumber(1,graphic.number4), new BitNumber(2,graphic.number5)
+                });
+
+                compiledFile.AddRange(Utils.BitArrayToByteArray(bitFeild.Compile()));
+
+            }
+
+            var header = new List<byte>();
+
+            header.AddRange(fourCC);
+
+            header.AddRange(BitConverter.GetBytes(12 + compiledFile.Count()));
+
+            header.AddRange(rawFile.data.GetRange(8, 2));
+
+            header.AddRange(BitConverter.GetBytes((short)textureCoordinates.Count));
+
+            header.AddRange(compiledFile);
+
+            rawFile.data = header;
+            rawFile.modified = true;
+
+        }
+
+        public FCopLevelSection Parse(FCopLevel parent) {
+            return new FCopLevelSection(this, parent);
+        }
+
+        void ParseHeightPoints() {
+
+            var bytes = rawFile.data.GetRange(heightMapOffset, heightMapLength);
+
+            var pointCount = 0;
+
+            List<byte> heights = new List<byte>();
+
+            foreach (byte b in bytes) {
+
+                heights.Add(b);
+
+                pointCount++;
+
+                if (pointCount == 3) {
+                    heightPoints.Add(new HeightPoint3(
+                        (sbyte)heights[0],
+                        (sbyte)heights[1],
+                        (sbyte)heights[2]
+                        ));
+
+                    pointCount = 0;
+                    heights.Clear();
+
+                }
 
             }
 
         }
 
-        offset += textureCordCount * 2;
+        void ParseThirdSection() {
 
-    }
+            var bytes = rawFile.data.GetRange(thirdSectionOffset, thirdSectionLength);
 
-    void ParseTileGraphics() {
+            foreach (int i in Enumerable.Range(0, thirdSectionLength / 2)) {
 
-        var length = rawFile.data.Count() - offset;
+                var byteField = bytes.GetRange(i * 2, 2).ToArray();
 
-        var bytes = rawFile.data.GetRange(offset, length);
+                var bitField = new BitArray(byteField);
 
-        foreach (int i in Enumerable.Range(0, length / 2)) {
-            tileGraphics.Add(new TileGraphics(bytes.GetRange(i * 2, 2).ToArray()));
+                var bitNumber6 = Utils.CopyBitsOfRange(bitField, 0, 6);
+                var bitNumber10 = Utils.CopyBitsOfRange(bitField, 6, 16);
+
+                thirdSectionBitfields.Add(new ThirdSectionBitfield(
+                    Utils.BitsToInt(bitNumber6),
+                    Utils.BitsToInt(bitNumber10)
+                    ));
+
+            }
+
+        }
+
+        void ParseTiles() {
+
+            var bytes = rawFile.data.GetRange(tileArrayOffset, tileCount * 4);
+
+            foreach (int i in Enumerable.Range(0, tileCount)) {
+
+                var byteFiled = bytes.GetRange(i * 4, 4).ToArray();
+
+                var bitField = new BitArray(byteFiled);
+
+                tiles.Add(new TileBitfield(
+                    Utils.BitsToInt(Utils.CopyBitsOfRange(bitField, 0, 1)),
+                    Utils.BitsToInt(Utils.CopyBitsOfRange(bitField, 1, 11)),
+                    Utils.BitsToInt(Utils.CopyBitsOfRange(bitField, 11, 13)),
+                    Utils.BitsToInt(Utils.CopyBitsOfRange(bitField, 13, 15)),
+                    Utils.BitsToInt(Utils.CopyBitsOfRange(bitField, 15, 22)),
+                    Utils.BitsToInt(Utils.CopyBitsOfRange(bitField, 22, 32))
+                        ));
+
+            }
+
+            offset = tileArrayOffset + tileCount * 4;
+
+        }
+
+        void ParseTextures() {
+
+            var bytes = rawFile.data.GetRange(offset, textureCordCount * 2);
+
+            foreach (int i in Enumerable.Range(0, textureCordCount)) {
+
+                textureCoordinates.Add(Utils.BytesToUShort(bytes.ToArray(), i * 2));
+
+            }
+
+            offset += textureCordCount * 2;
+
+        }
+
+        void ParseTileGraphics() {
+
+            var length = rawFile.data.Count() - offset;
+
+            var bytes = rawFile.data.GetRange(offset, length);
+
+            foreach (int i in Enumerable.Range(0, length / 2)) {
+                var byteFiled = bytes.GetRange(i * 2, 2).ToArray();
+
+                var bitField = new BitArray(byteFiled);
+
+                tileGraphics.Add(new TileGraphics(
+                    Utils.BitsToInt(Utils.CopyBitsOfRange(bitField, 0, 8)),
+                    Utils.BitsToInt(Utils.CopyBitsOfRange(bitField, 8, 11)),
+                    Utils.BitsToInt(Utils.CopyBitsOfRange(bitField, 11, 13)),
+                    Utils.BitsToInt(Utils.CopyBitsOfRange(bitField, 13, 14)),
+                    Utils.BitsToInt(Utils.CopyBitsOfRange(bitField, 14, 16))
+                    ));
+            }
+
         }
 
     }
 
-}
+    public abstract class FCopLevelLayoutParser {
 
-struct HeightPoint3 {
-    public byte height1;
-    public byte height2;
-    public byte height3;
+        const int widthOffset = 16;
+        const int heightOffset = 20;
+        const int layoutOffset = 48;
 
-    public HeightPoint3(byte height1, byte height2, byte height3) {
-        this.height1 = height1;
-        this.height2 = height2;
-        this.height3 = height3;
+        public static List<List<int>> Parse(IFFDataFile file) {
+
+            int width = Utils.BytesToInt(file.data.ToArray(), widthOffset);
+            int height = Utils.BytesToInt(file.data.ToArray(), heightOffset);
+
+            var layout = new List<List<int>>();
+
+            var offset = layoutOffset;
+
+            foreach (int _ in Enumerable.Range(0, height)) {
+
+                layout.Add(new List<int>());
+
+
+                foreach (int i in Enumerable.Range(0, width)) {
+                    layout.Last().Add(Utils.BytesToInt(file.data.ToArray(), offset) / 4);
+                    offset += 4;
+                }
+
+            }
+
+            return layout;
+
+        }
+
     }
 
-}
+    public struct HeightPoint3 {
+        public sbyte height1;
+        public sbyte height2;
+        public sbyte height3;
 
-struct ThirdSectionBitfield {
+        public HeightPoint3(sbyte height1, sbyte height2, sbyte height3) {
+            this.height1 = height1;
+            this.height2 = height2;
+            this.height3 = height3;
+        }
 
-    // 6 bit
-    public int number1;
-    // 10 bit
-    public int number2;
-
-    public ThirdSectionBitfield(int number1, int number2) {
-        this.number1 = number1;
-        this.number2 = number2;
     }
 
-}
+    public struct ThirdSectionBitfield {
 
-struct Tile {
+        // 6 bit
+        public int number1;
+        // 10 bit
+        public int number2;
 
-    public byte[] data;
+        public ThirdSectionBitfield(int number1, int number2) {
+            this.number1 = number1;
+            this.number2 = number2;
+        }
 
-    public Tile(byte[] data) {
-        this.data = data;
     }
 
-}
+    public struct TileBitfield {
 
-struct TextureCoordinate {
+        public int number1;
+        public int number2;
+        public int number3;
+        public int number4;
+        public int number5;
+        public int number6;
 
-    public int topLeftIndex;
-    public int topRightIndex;
-    public int bottomRightIndex;
-    public int bottomLeftIndex;
-
-    public TextureCoordinate(int topLeftIndex, int topRightIndex, int bottomRightIndex, int bottomLeftIndex) {
-        this.topLeftIndex = topLeftIndex;
-        this.topRightIndex = topRightIndex;
-        this.bottomRightIndex = bottomRightIndex;
-        this.bottomLeftIndex = bottomLeftIndex;
+        public TileBitfield(int number1, int number2, int number3, int number4, int number5, int number6) {
+            this.number1 = number1;
+            this.number2 = number2;
+            this.number3 = number3;
+            this.number4 = number4;
+            this.number5 = number5;
+            this.number6 = number6;
+        }
     }
 
-}
+    public abstract class TextureCoordinate {
 
-struct TileGraphics {
+        static public float GetX(int offset) {
+            return (offset % 256) / 256f;
+        }
 
-    public byte[] data;
+        static public float GetY(int offset) {
+            return (float)Math.Floor(offset / 256f) / 256f;
+        }
 
-    public TileGraphics(byte[] data) {
-        this.data = data;
+    }
+
+    public struct TileGraphics {
+
+        public int number1;
+        public int number2;
+        public int number3;
+        public int number4;
+        public int number5;
+
+        public TileGraphics(int number1, int number2, int number3, int number4, int number5) {
+            this.number1 = number1;
+            this.number2 = number2;
+            this.number3 = number3;
+            this.number4 = number4;
+            this.number5 = number5;
+        }
+
     }
 
 }
