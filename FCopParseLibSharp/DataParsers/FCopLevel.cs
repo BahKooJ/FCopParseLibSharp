@@ -1,4 +1,5 @@
 ﻿
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +11,7 @@ namespace FCopParser {
 
         public List<List<int>> layout;
 
-        public List<FCopLevelSectionParser> sections = new List<FCopLevelSectionParser>();
+        public List<FCopLevelSection> sections = new List<FCopLevelSection>();
 
         public List<FCopTexture> textures = new List<FCopTexture>();
 
@@ -29,7 +30,7 @@ namespace FCopParser {
             }).ToList();
 
             foreach (var rawFile in rawCtilFiles) {
-                sections.Add(new FCopLevelSectionParser(rawFile));
+                sections.Add(new FCopLevelSectionParser(rawFile).Parse(this));
             }
 
             foreach (var rawFile in rawBitmapFiles) {
@@ -130,7 +131,7 @@ namespace FCopParser {
 
         public float GetPoint(int index) {
 
-            switch (index) {
+            switch(index) {
                 case 1: return height1;
                 case 2: return height2;
                 case 3: return height3;
@@ -203,6 +204,7 @@ namespace FCopParser {
 
     public class FCopLevelSectionParser {
 
+        const int colorCountOffset = 8;
         const int textureCordCountOffset = 10;
 
         const int heightMapOffset = 12;
@@ -221,10 +223,11 @@ namespace FCopParser {
         static List<byte> fourCC = new List<byte>() { 116, 99, 101, 83 };
 
 
-        public IFFDataFile rawFile;
+        IFFDataFile rawFile;
 
         public short textureCordCount;
         public short tileCount;
+        public short colorCount;
 
 
         public List<HeightPoint3> heightPoints = new List<HeightPoint3>();
@@ -239,6 +242,7 @@ namespace FCopParser {
         public FCopLevelSectionParser(IFFDataFile rawFile) {
             this.rawFile = rawFile;
 
+            colorCount = Utils.BytesToShort(rawFile.data.ToArray(), colorCountOffset);
             textureCordCount = Utils.BytesToShort(rawFile.data.ToArray(), textureCordCountOffset);
 
             ParseHeightPoints();
@@ -270,13 +274,13 @@ namespace FCopParser {
                 rawFile.data.GetRange(renderDistanceOffset, rednerDistanceLength)
                 );
 
-            compiledFile.AddRange(BitConverter.GetBytes((short)tiles.Count));
+            compiledFile.AddRange(BitConverter.GetBytes(tileCount));
 
             foreach (ThirdSectionBitfield thirdSectionItem in thirdSectionBitfields) {
 
                 var bitFeild = new BitField(16, new List<BitNumber> {
-                    new BitNumber(6,thirdSectionItem.number1), new BitNumber(10,thirdSectionItem.number2)
-                });
+                new BitNumber(6,thirdSectionItem.number1), new BitNumber(10,thirdSectionItem.number2)
+            });
 
                 compiledFile.AddRange(Utils.BitArrayToByteArray(bitFeild.Compile()));
 
@@ -286,29 +290,14 @@ namespace FCopParser {
 
             foreach (TileBitfield tile in tiles) {
 
-                var bitFeild = new BitField(32, new List<BitNumber> {
-                    new BitNumber(1,tile.number1), new BitNumber(10,tile.number2), 
-                    new BitNumber(2,tile.number3), new BitNumber(2,tile.number4), 
-                    new BitNumber(7,tile.number5), new BitNumber(10,tile.number6)
-                });
-
-                compiledFile.AddRange(Utils.BitArrayToByteArray(bitFeild.Compile()));
-
             }
 
             foreach (int texture in textureCoordinates) {
-                compiledFile.AddRange(BitConverter.GetBytes((ushort)texture));
+
             }
 
             foreach (TileGraphics graphic in tileGraphics) {
-
-                var bitFeild = new BitField(16, new List<BitNumber> {
-                    new BitNumber(8,graphic.number1), new BitNumber(3,graphic.number2),
-                    new BitNumber(2,graphic.number3), new BitNumber(1,graphic.number4), new BitNumber(2,graphic.number5)
-                });
-
-                compiledFile.AddRange(Utils.BitArrayToByteArray(bitFeild.Compile()));
-
+                
             }
 
             var header = new List<byte>();
@@ -319,7 +308,7 @@ namespace FCopParser {
 
             header.AddRange(rawFile.data.GetRange(8, 2));
 
-            header.AddRange(BitConverter.GetBytes((short)textureCoordinates.Count));
+            header.AddRange(BitConverter.GetBytes(textureCordCount));
 
             header.AddRange(compiledFile);
 
@@ -425,6 +414,8 @@ namespace FCopParser {
 
         void ParseTileGraphics() {
 
+            offset += colorCount * 2;
+
             var length = rawFile.data.Count() - offset;
 
             var bytes = rawFile.data.GetRange(offset, length);
@@ -468,7 +459,7 @@ namespace FCopParser {
 
 
                 foreach (int i in Enumerable.Range(0, width)) {
-                    layout.Last().Add(Utils.BytesToInt(file.data.ToArray(), offset) / 4);
+                    layout.Last().Add(Utils.BytesToInt(file.data.ToArray(),offset) / 4);
                     offset += 4;
                 }
 
@@ -528,12 +519,12 @@ namespace FCopParser {
 
     public abstract class TextureCoordinate {
 
-        static public float GetX(int offset) {
-            return (offset % 256) / 256f;
+        static public float GetX(int offset, float width = 256f) {
+            return (offset % width) / width;
         }
 
-        static public float GetY(int offset) {
-            return (float)Math.Floor(offset / 256f) / 256f;
+        static public float GetY(int offset, float width = 256f, float height = 2048f) {
+            return (float)Math.Floor(offset / width) / height;
         }
 
     }
