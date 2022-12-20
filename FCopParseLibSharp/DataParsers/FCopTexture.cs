@@ -1,17 +1,27 @@
 ﻿
+using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace FCopParser {
 
     public class FCopTexture {
 
+        const int imageSize = 131072;
+
 
         public List<ChunkHeader> offsets = new List<ChunkHeader>();
+
+        public IFFDataFile rawFile;
 
         public List<byte> bitmap;
 
         public FCopTexture(IFFDataFile rawFile) {
+
+            this.rawFile = rawFile;
 
             FindChunks(rawFile.data.ToArray());
 
@@ -45,7 +55,7 @@ namespace FCopParser {
 
             formattedBitmap.AddRange(bitmap);
 
-            return bitmap.ToArray();
+            return formattedBitmap.ToArray();
 
         }
 
@@ -61,6 +71,41 @@ namespace FCopParser {
             }
 
             return total.ToArray();
+
+        }
+
+        public void ImportBMP(byte[] bytes) {
+
+            var offset = BitConverter.ToInt32(bytes, 10);
+
+            bitmap = new List<byte>(bytes).GetRange(offset, imageSize);
+
+        }
+
+        public void Compile() {
+
+            var total = new List<byte>();
+
+            var px16 = offsets.First(chunkHeader => {
+                return chunkHeader.fourCCDeclaration == "PX16";
+            });
+
+            var plut = offsets.First(chunkHeader => {
+                return chunkHeader.fourCCDeclaration == "PLUT";
+            });
+
+            var offset = px16.index + 8 + imageSize;
+
+            total.AddRange(rawFile.data.GetRange(0,px16.index));
+            total.AddRange(rawFile.data.GetRange(px16.index, 8));
+            total.AddRange(bitmap.GetRange(0, imageSize));
+
+            total.AddRange(rawFile.data.GetRange(plut.index, plut.chunkSize));
+
+            rawFile.data = total;
+            rawFile.modified = true;
+
+
 
         }
 
@@ -111,6 +156,17 @@ namespace FCopParser {
         }
 
         public XRGB555(BitArray bits) {
+            
+            r = Utils.BitsToInt(Utils.CopyBitsOfRange(bits, 0, 5));
+            g = Utils.BitsToInt(Utils.CopyBitsOfRange(bits, 5, 10));
+            b = Utils.BitsToInt(Utils.CopyBitsOfRange(bits, 10, 15));
+            x = bits[15];
+
+        }
+
+        public XRGB555(List<byte> bytes) {
+
+            BitArray bits = new BitArray(bytes.ToArray());
 
             r = Utils.BitsToInt(Utils.CopyBitsOfRange(bits, 0, 5));
             g = Utils.BitsToInt(Utils.CopyBitsOfRange(bits, 5, 10));
@@ -127,11 +183,26 @@ namespace FCopParser {
 
             int calculatedGreen = (int)Math.Round(greenPercent * max6bitValue);
 
-            var bitfield = new BitField(16, new List<BitNumber> {
+            var bitfield = new BitField(16, new List<BitNumber> { 
 
                 new BitNumber(5,r),
                 new BitNumber(6,calculatedGreen),
                 new BitNumber(5,b),
+
+            });
+
+            return Utils.BitArrayToByteArray(bitfield.Compile());
+
+        }
+
+        public byte[] Compile() {
+
+            var bitfield = new BitField(16, new List<BitNumber> {
+
+                new BitNumber(5,r),
+                new BitNumber(5,g),
+                new BitNumber(5,b),
+                new BitNumber(x)
 
             });
 

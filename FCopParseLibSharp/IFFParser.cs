@@ -24,14 +24,14 @@ namespace FCopParser {
             public const string SWVR = "SWVR";
             public const string MSIC = "MSIC";
 
-            public readonly static List<byte> CTRLbytes = new List<byte>() { 76, 82, 84, 67 };
-            public readonly static List<byte> SHOCbytes = new List<byte>() { 67, 79, 72, 83 };
-            public readonly static List<byte> SDATbytes = new List<byte>() { 84, 65, 68, 83 };
-            public readonly static List<byte> SHDRbytes = new List<byte>() { 82, 68, 72, 83 };
-            public readonly static List<byte> FILLbytes = new List<byte>() { 76, 76, 73, 70 };
-            public readonly static List<byte> SWVRbytes = new List<byte>() { 82, 86, 87, 83 };
-            public readonly static List<byte> FILEbytes = new List<byte>() { 69, 76, 73, 70 };
-            public readonly static List<byte> MSICbytes = new List<byte>() { 67, 73, 83, 77 };
+            public readonly static List<byte> CTRLbytes = new() { 76, 82, 84, 67 };
+            public readonly static List<byte> SHOCbytes = new() { 67, 79, 72, 83 };
+            public readonly static List<byte> SDATbytes = new() { 84, 65, 68, 83 };
+            public readonly static List<byte> SHDRbytes = new() { 82, 68, 72, 83 };
+            public readonly static List<byte> FILLbytes = new() { 76, 76, 73, 70 };
+            public readonly static List<byte> SWVRbytes = new() { 82, 86, 87, 83 };
+            public readonly static List<byte> FILEbytes = new() { 69, 76, 73, 70 };
+            public readonly static List<byte> MSICbytes = new() { 67, 73, 83, 77 };
         }
 
         // The normal length of a chunk header.
@@ -68,7 +68,7 @@ namespace FCopParser {
         public byte[] bytes = Array.Empty<byte>();
 
         // This stores all the offsets or index of chunks as well as useful information regarding them with the ChunkHeader object.
-        public List<ChunkHeader> offsets = new List<ChunkHeader>();
+        public List<ChunkHeader> offsets = new();
 
         // If given bytes, the object knows the data needs to be parsed
         public IFFParser(byte[] bytes) {
@@ -167,7 +167,7 @@ namespace FCopParser {
         // =VERY WIP=
         public void Compile() {
 
-            List<byte> compiledFile = new List<byte>();
+            List<byte> compiledFile = new();
 
             // The files size starts off as 24 to fill the space for a future CTRL chunk
             var current24kSectionSize = 24;
@@ -191,6 +191,7 @@ namespace FCopParser {
                     compiledFile.AddRange(FourCC.FILLbytes);
                     compiledFile.AddRange(BitConverter.GetBytes(difference));
 
+                    // Expection thrown here for unknown reason
                     foreach (int i in Enumerable.Range(0, difference - 8)) {
                         compiledFile.Add(0);
                     }
@@ -229,7 +230,7 @@ namespace FCopParser {
 
             void CompileDataFile(IFFDataFile file) {
 
-                List<byte> dataHeader = new List<byte>();
+                List<byte> dataHeader = new();
 
                 var dataSize = file.data.Count();
 
@@ -291,9 +292,9 @@ namespace FCopParser {
 
             }
 
-            var dataFileSize = 0;
-            var subFileSize = 0;
-            var musicSize = 0;
+            int dataFileSize;
+            int subFileSize;
+            int musicSize;
 
             foreach (var file in parsedData.files) {
 
@@ -307,7 +308,7 @@ namespace FCopParser {
 
             foreach (var subFile in parsedData.subFiles) {
 
-                List<byte> subFileHeader = new List<byte>();
+                List<byte> subFileHeader = new();
 
                 subFileHeader.AddRange(FourCC.SWVRbytes);
                 subFileHeader.AddRange(BitConverter.GetBytes(36));
@@ -336,7 +337,7 @@ namespace FCopParser {
 
             subFileSize = compiledFile.Count() - dataFileSize;
 
-            List<byte> musicfileHeader = new List<byte>();
+            List<byte> musicfileHeader = new();
 
             musicfileHeader.AddRange(FourCC.SWVRbytes);
             musicfileHeader.AddRange(BitConverter.GetBytes(36));

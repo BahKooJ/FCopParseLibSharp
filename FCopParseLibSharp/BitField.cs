@@ -48,6 +48,11 @@ namespace FCopParser {
             this.number = number;
         }
 
+        public BitNumber(bool bit) {
+            bitCount = 1;
+            number = bit ? 1 : 0;
+        }
+
         public BitArray Get() {
 
             if (number > (Math.Pow(2, bitCount)) - 1) {

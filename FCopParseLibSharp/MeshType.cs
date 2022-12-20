@@ -4,1107 +4,1210 @@ using System.Collections.Generic;
 namespace FCopParser {
     public abstract class MeshType {
 
+        static public Dictionary<int, List<TileVertex>> meshes = ReadMeshType();
+
         static public List<TileVertex> VerticiesFromID(int id) {
+
+            return new List<TileVertex>(meshes[id]);
+            //return meshes[id];
 
             // Tiles can be rendered with both sides, or just one side. Could be those unknown numbers.
 
-            switch (id) {
+            //switch (id) {
 
-                case 0: {
+            //    case 0: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopRight),
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopRight),
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 1: {
+            //    case 1: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 2: {
+            //    case 2: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 3: {
+            //    case 3: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 4: {
+            //    case 4: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopRight),
-                            new TileVertex(3, VertexPosition.BottomLeft),
-                            new TileVertex(3, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopRight),
+            //                new TileVertex(3, VertexPosition.BottomLeft),
+            //                new TileVertex(3, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 5: {
+            //    case 5: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopRight),
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.BottomLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopRight),
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.BottomLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 6: {
+            //    case 6: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 7: {
+            //    case 7: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomRight),
-                            new TileVertex(1, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight),
+            //                new TileVertex(1, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 8: {
+            //    case 8: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 9: {
+            //    case 9: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomRight),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 10: {
+            //    case 10: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.BottomLeft),
-                            new TileVertex(3, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.BottomLeft),
+            //                new TileVertex(3, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 11: {
+            //    case 11: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.BottomRight),
-                            new TileVertex(3, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.BottomRight),
+            //                new TileVertex(3, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 12: {
+            //    case 12: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 13: {
+            //    case 13: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomRight),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 14: {
+            //    case 14: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 15: {
+            //    case 15: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomRight),
-                            new TileVertex(3, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight),
+            //                new TileVertex(3, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 16: {
+            //    case 16: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 17: {
+            //    case 17: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 18: {
+            //    case 18: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 19: {
+            //    case 19: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopRight),
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopRight),
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 20: {
+            //    case 20: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomRight),
-                            new TileVertex(1, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight),
+            //                new TileVertex(1, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 21: {
+            //    case 21: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 22: {
+            //    case 22: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.BottomRight),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.BottomRight),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 23: {
+            //    case 23: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.BottomLeft),
-                            new TileVertex(3, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.BottomLeft),
+            //                new TileVertex(3, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 24: {
+            //    case 24: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopRight),
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 25: {
+            //    case 25: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 26: {
+            //    case 26: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.BottomLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.BottomLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 27: {
+            //    case 27: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(3, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(3, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 28: {
+            //    case 28: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 29: {
+            //    case 29: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomRight),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 30: {
+            //    case 30: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(3, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(3, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 31: {
+            //    case 31: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.BottomRight),
-                            new TileVertex(3, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.BottomRight),
+            //                new TileVertex(3, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 32: {
+            //    case 32: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 33: {
+            //    case 33: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 34: {
+            //    case 34: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 35: {
+            //    case 35: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(3, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(3, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 36: {
+            //    case 36: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 37: {
+            //    case 37: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 38: {
+            //    case 38: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(3, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(3, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 39: {
+            //    case 39: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.BottomLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.BottomLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 40: {
+            //    case 40: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomRight),
-                            new TileVertex(1, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight),
+            //                new TileVertex(1, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 41: {
+            //    case 41: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 42: {
+            //    case 42: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomRight),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 43: {
+            //    case 43: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 44: {
+            //    case 44: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 45: {
+            //    case 45: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 46: {
+            //    case 46: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopRight),
-                            new TileVertex(3, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopRight),
+            //                new TileVertex(3, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 47: {
+            //    case 47: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.BottomLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.BottomLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 48: {
+            //    case 48: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 49: {
+            //    case 49: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomRight),
-                            new TileVertex(1, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight),
+            //                new TileVertex(1, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 50: {
+            //    case 50: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 51: {
+            //    case 51: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.BottomRight),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.BottomRight),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 52: {
+            //    case 52: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 53: {
+            //    case 53: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopRight),
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopRight),
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 54: {
+            //    case 54: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 55: {
+            //    case 55: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(3, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(3, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 56: {
+            //    case 56: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 57: {
+            //    case 57: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomRight),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 58: {
+            //    case 58: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 59: {
+            //    case 59: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomRight),
-                            new TileVertex(3, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight),
+            //                new TileVertex(3, VertexPosition.TopRight)
+            //            };
 
-                    }
+            //        }
 
-                case 60: {
+            //    case 60: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 61: {
+            //    case 61: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 62: {
+            //    case 62: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 63: {
+            //    case 63: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(3, VertexPosition.BottomLeft),
-                            new TileVertex(3, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(3, VertexPosition.BottomLeft),
+            //                new TileVertex(3, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 64: {
+            //    case 64: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 65: {
+            //    case 65: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(3, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(3, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 66: {
+            //    case 66: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 67: {
+            //    case 67: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(3, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(3, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 68: {
+            //    case 68: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.TopRight),
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.TopRight),
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 69: {
+            //    case 69: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 70: {
+            //    case 70: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.TopRight),
-                            new TileVertex(3, VertexPosition.BottomLeft),
-                            new TileVertex(3, VertexPosition.BottomRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.TopRight),
+            //                new TileVertex(3, VertexPosition.BottomLeft),
+            //                new TileVertex(3, VertexPosition.BottomRight)
+            //            };
 
-                    }
+            //        }
 
-                case 71: {
+            //    case 71: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 72: {
+            //    case 72: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 73: {
+            //    case 73: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 74: {
+            //    case 74: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(3, VertexPosition.TopLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(3, VertexPosition.TopLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 75: {
+            //    case 75: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.TopLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.TopLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 76: {
+            //    case 76: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 77: {
+            //    case 77: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.BottomLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 78: {
+            //    case 78: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.BottomLeft)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.BottomLeft)
+            //            };
 
-                    }
+            //        }
 
-                case 79: {
+            //    case 79: {
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.TopRight)
-                        };
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(1, VertexPosition.TopRight),
+            //                new TileVertex(1, VertexPosition.TopLeft)
+            //            };
 
-                    }
-                //Missing 88, 94, 95, 101
-                case 80: {
-
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //        }
+            //    //Missing 88, 94, 95, 101
+            //    case 80: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                case 81: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //    case 81: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                case 82: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.TopRight)
-                        };
+            //    case 82: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.TopRight)
+            //            };
 
-                case 83: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.TopRight)
-                        };
+            //    case 83: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.TopLeft)
+            //            };
 
-                case 84: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.TopRight)
-                        };
+            //    case 84: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.TopRight)
+            //            };
 
-                case 85: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //    case 85: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                case 86: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopRight),
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //    case 86: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopRight),
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                case 87: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.TopRight)
-                        };
+            //    case 87: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.TopRight)
+            //            };
 
-                case 89: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //    case 89: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                case 90: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(3, VertexPosition.TopRight)
-                        };
+            //    case 90: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(3, VertexPosition.TopRight)
+            //            };
 
-                case 91: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.TopRight)
-                        };
+            //    case 91: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.TopRight)
+            //            };
 
-                case 92: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.TopRight)
-                        };
+            //    case 92: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.TopRight)
+            //            };
 
-                case 93: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //    case 93: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                case 96: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //    case 96: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                case 97: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.BottomRight),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //    case 97: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.BottomRight),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                case 98: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.BottomRight)
-                        };
+            //    case 98: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.BottomRight)
+            //            };
 
-                case 99: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomRight)
-                        };
+            //    case 99: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight)
+            //            };
 
-                case 100: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(2, VertexPosition.BottomRight),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomRight)
-                        };
+            //    case 100: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.BottomRight),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight)
+            //            };
 
-                case 102: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.BottomRight),
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //    case 102: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.BottomRight),
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                case 103: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(1, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //    case 103: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(1, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                case 104: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.BottomLeft),
-                            new TileVertex(3, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //    case 104: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.BottomLeft),
+            //                new TileVertex(3, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
 
-                case 105: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomRight),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //    case 105: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomRight),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                case 106: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.BottomRight),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomRight)
-                        };
+            //    case 106: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.BottomRight),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomRight)
+            //            };
 
-                case 107: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                        };
+            //    case 107: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.BottomLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //            };
 
-                case 108: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(1, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(1, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+            //    case 108: {
 
-                    }
+            //            return new List<TileVertex>() {
+            //                new TileVertex(1, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(1, VertexPosition.TopRight),
+            //                new TileVertex(2, VertexPosition.TopRight)
+            //            };
+
+            //        }
+
+            //    case 109: {
+
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.BottomLeft),
+            //                new TileVertex(3, VertexPosition.BottomLeft)
+            //            };
+
+            //        }
+
+            //    case 110: {
+
+            //            return new List<TileVertex>() {
+            //                new TileVertex(2, VertexPosition.TopLeft),
+            //                new TileVertex(3, VertexPosition.TopLeft),
+            //                new TileVertex(2, VertexPosition.TopRight),
+            //                new TileVertex(3, VertexPosition.TopRight)
+            //            };
 
-                case 109: {
+            //        }
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.BottomLeft),
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.BottomLeft),
-                            new TileVertex(2, VertexPosition.TopLeft)
-                        };
+            //    default: return new List<TileVertex>();
 
+            //};
+
+        }
+
+        static public int? IDFromVerticies(List<TileVertex> verticies) {
+
+            foreach (var mesh in meshes) {
+
+                if (verticies.Count != mesh.Value.Count) {
+                    continue;
+                }
+
+                var found = true;
+                var index = 0;
+                foreach (var vertex in mesh.Value) {
+
+                    if (!mesh.Value.Contains(verticies[index])) {
+                        found = false;
+                        break;
                     }
+
+                    index++;
+                }
+
+                if (found) {
+                    return mesh.Key;
+                }
+
+            }
 
-                case 110: {
+            return null;
 
-                        return new List<TileVertex>() {
-                            new TileVertex(3, VertexPosition.TopLeft),
-                            new TileVertex(3, VertexPosition.TopRight),
-                            new TileVertex(2, VertexPosition.TopLeft),
-                            new TileVertex(2, VertexPosition.TopRight)
-                        };
+        }
 
+
+        static public void MeshTypesToFile() {
+
+            string total = "";
+
+            foreach (int type in Enumerable.Range(0, 111)) {
+
+                // type: [(heightChannel,vertexPosition)]
+
+                total += type.ToString() + ": [";
+                var verticies = VerticiesFromID(type);
+
+                foreach (var vertex in verticies) {
+                    total += "(" + vertex.heightChannel + "," + (int)vertex.vertexPosition + ")";
+                }
+
+                total += "]\n";
+
+            }
+
+            File.WriteAllText("MeshData.txt", total);
+
+        }
+
+        static public Dictionary<int, List<TileVertex>> ReadMeshType() {
+
+            var total = new Dictionary<int, List<TileVertex>>();
+
+            string fileText = File.ReadAllText("MeshData.txt");
+
+            string value = "";
+            bool insideArray = false;
+            var openedObject = new List<int>();
+
+            foreach (var c in fileText) {
+
+                if (insideArray) {
+
+                    if (c == ']') {
+                        insideArray = false;
+                    } else if (c == ',') {
+                        openedObject.Add(Int32.Parse(value));
+                        value = "";
+                    } else if (c == ')') {
+                        openedObject.Add(Int32.Parse(value));
+                        value = "";
+                        total.Last().Value.Add(new TileVertex(openedObject[0], (VertexPosition)openedObject[1]));
+                        openedObject = new List<int>();
+                    } else if (c != '(' && c != ' ') {
+                        value += c;
                     }
+
+                } else if (c == ':') {
+                    total[Int32.Parse(value)] = new List<TileVertex>();
+                    value = "";
+                } else if (c == '[') {
+                    insideArray = true;
+                } else if (c != ' ' && c != '\n') {
+                    value += c;
+                }
 
-                default: return new List<TileVertex>();
+            }
 
-            };
+            return total;
 
         }
 
     }
+
 
 }
