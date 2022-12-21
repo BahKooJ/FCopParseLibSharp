@@ -186,12 +186,13 @@ namespace FCopParser {
                     // TODO: Change to <= 8 check
                     if (difference == 4) {
                         compiledFile.AddRange(FourCC.FILLbytes);
+                        current24kSectionSize = 0;
+                        return;
                     }
 
                     compiledFile.AddRange(FourCC.FILLbytes);
                     compiledFile.AddRange(BitConverter.GetBytes(difference));
 
-                    // Expection thrown here for unknown reason
                     foreach (int i in Enumerable.Range(0, difference - 8)) {
                         compiledFile.Add(0);
                     }
@@ -433,11 +434,34 @@ namespace FCopParser {
             offsets.Clear();
 
             int offset = 0;
+            int current24kSectionSize = 0;
 
             while (offset < bytes.Length) {
 
                 var fourCC = BytesToStringReversed(offset, 4);
                 var size = BytesToInt(offset + 4);
+
+                if (fourCC == FourCC.FILL) {
+                    var difference = iffFileSectionSize - current24kSectionSize;
+
+                    offsets.Add(new ChunkHeader(offset, fourCC, difference));
+
+                    offset += difference;
+
+                    current24kSectionSize = 0;
+
+                    continue;
+
+                } 
+                else {
+
+                    current24kSectionSize += size;
+
+                    if (current24kSectionSize == iffFileSectionSize) {
+                        current24kSectionSize = 0;
+                    }
+
+                }
 
                 if (fourCC == FourCC.SHOC) {
 
@@ -467,7 +491,8 @@ namespace FCopParser {
 
                     }
 
-                } else if (fourCC == FourCC.SWVR) {
+                } 
+                else if (fourCC == FourCC.SWVR) {
 
                     var fourCCType = BytesToStringReversed(offset + 16, 4);
 
@@ -491,19 +516,15 @@ namespace FCopParser {
                     offsets.Add(new ChunkHeader(offset, fourCC, size, fourCCType, fileName));
 
 
-                } else {
+                } 
+                else {
 
                     offsets.Add(new ChunkHeader(offset, fourCC, size));
 
                 }
 
                 offset += size;
-                //Console.WriteLine(
-                //    offsets.Last().index.ToString() + " " +
-                //    offsets.Last().fourCCDeclaration + " " +
-                //    offsets.Last().chunkSize.ToString() + " " +
-                //    offsets.Last().fourCCType
-                //    );
+
 
             }
 

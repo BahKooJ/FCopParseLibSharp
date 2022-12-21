@@ -1,13 +1,8 @@
 ﻿using System.Collections;
 using FCopParser;
 
-var parser = new IFFParser(File.ReadAllBytes("Mp"));
-
-var level = new FCopLevel(parser.parsedData);
-
+var parser = new IFFParser(File.ReadAllBytes("C:/Program Files (x86)/Electronic Arts/Future Cop/missions/Un"));
 
 parser.Compile();
-
-File.WriteAllBytes("Mp MOD", parser.bytes);
 
 Console.WriteLine("bonk");
