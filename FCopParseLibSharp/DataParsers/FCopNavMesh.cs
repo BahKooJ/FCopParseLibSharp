@@ -1,4 +1,8 @@
-﻿using System.Collections;
+﻿
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace FCopParser {
 
@@ -16,11 +20,11 @@ namespace FCopParser {
         public FCopNavMesh(IFFDataFile rawFile) {
             this.rawFile = rawFile;
 
-            int nodeCount = Utils.BytesToShort(rawFile.data.ToArray(), nodeCountOffset);
+            int nodeCount = Utils.BytesToShort(rawFile.data.ToArray(),nodeCountOffset);
 
             int index = 0;
             int offset = nodesOffset;
-            foreach (var i in Enumerable.Range(0, nodeCount)) {
+            foreach (var i in Enumerable.Range(0,nodeCount)) {
 
                 var byteFiled = rawFile.data.GetRange(offset, 12).ToArray();
 

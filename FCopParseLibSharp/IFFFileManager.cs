@@ -11,10 +11,10 @@ namespace FCopParser {
         public List<IFFDataFile> files = new List<IFFDataFile>();
 
         // Sub folders/files inside the IFF file that are separated.
-        public Dictionary<string, List<IFFDataFile>> subFiles = new Dictionary<string, List<IFFDataFile>>();
+        public Dictionary<byte[], List<IFFDataFile>> subFiles = new Dictionary<byte[], List<IFFDataFile>>();
 
         // Nothing but the music, the key is the name of the song.
-        public KeyValuePair<string, List<byte>>? music = null;
+        public KeyValuePair<byte[], List<byte>>? music = null;
 
     }
 
@@ -27,6 +27,7 @@ namespace FCopParser {
         public int dataID;
         public List<byte> additionalData;
         public bool modified = false;
+        public bool ignore = false;
 
         public IFFDataFile(int startNumber, List<byte> data, string dataFourCC, int dataID, List<byte> additionalData) {
             this.startNumber = startNumber;

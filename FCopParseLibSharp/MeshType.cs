@@ -1,5 +1,8 @@
 ﻿
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace FCopParser {
     public abstract class MeshType {
@@ -8,7 +11,7 @@ namespace FCopParser {
 
         static public List<TileVertex> VerticiesFromID(int id) {
 
-            return new List<TileVertex>(meshes[id]);
+            return new List<TileVertex> (meshes[id]);
             //return meshes[id];
 
             // Tiles can be rendered with both sides, or just one side. Could be those unknown numbers.
@@ -1145,7 +1148,7 @@ namespace FCopParser {
 
             string total = "";
 
-            foreach (int type in Enumerable.Range(0, 111)) {
+            foreach (int type in Enumerable.Range(0,111)) {
 
                 // type: [(heightChannel,vertexPosition)]
 
@@ -1180,24 +1183,36 @@ namespace FCopParser {
 
                     if (c == ']') {
                         insideArray = false;
-                    } else if (c == ',') {
+                    }
+
+                    else if (c == ',') {
                         openedObject.Add(Int32.Parse(value));
                         value = "";
-                    } else if (c == ')') {
+                    }
+
+                    else if (c == ')') {
                         openedObject.Add(Int32.Parse(value));
                         value = "";
                         total.Last().Value.Add(new TileVertex(openedObject[0], (VertexPosition)openedObject[1]));
                         openedObject = new List<int>();
-                    } else if (c != '(' && c != ' ') {
+                    }
+
+                    else if (c != '(' && c != ' ') {
                         value += c;
                     }
 
-                } else if (c == ':') {
+                }
+
+                else if (c == ':') {
                     total[Int32.Parse(value)] = new List<TileVertex>();
                     value = "";
-                } else if (c == '[') {
+                }
+
+                else if (c == '[') {
                     insideArray = true;
-                } else if (c != ' ' && c != '\n') {
+                }
+
+                else if (c != ' ' && c != '\n') {
                     value += c;
                 }
 
@@ -1208,6 +1223,5 @@ namespace FCopParser {
         }
 
     }
-
 
 }

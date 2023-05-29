@@ -6,18 +6,23 @@ namespace FCopParser {
 
     public class FCopRPNS {
 
+        public List<List<byte>> code = new();
 
         public FCopRPNS(IFFDataFile rawFile) {
 
+            var currentLine = new List<byte>();
+
             foreach (var b in rawFile.data) {
 
-                var bits = new BitArray(new byte[] { b });
-                
-                Console.Write(Utils.BitsToInt(Utils.CopyBitsOfRange(bits, 6, 8)));
-                Console.Write(' ');
-                Console.Write(Utils.BitsToInt(Utils.CopyBitsOfRange(bits, 0, 6)));
+                currentLine.Add(b);
 
-                Console.WriteLine();
+                if (b == 0) {
+
+                    code.Add(new(currentLine));
+
+                    currentLine.Clear();
+
+                }
 
             }
 

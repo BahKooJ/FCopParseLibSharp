@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 
 namespace FCopParser {
-    class IFFParser {
+    public class IFFParser {
 
         // ---Constants---
 
@@ -94,7 +94,7 @@ namespace FCopParser {
             IFFDataFile? file = null;
             var dataChunksToAdd = 0;
 
-            string? subFileName = null;
+            byte[]? subFileName = null;
 
             foreach (ChunkHeader header in offsets) {
 
@@ -107,7 +107,7 @@ namespace FCopParser {
 
                     if (fileMananger.music == null) {
 
-                        fileMananger.music = new KeyValuePair<string, List<byte>>(subFileName!, new List<byte>());
+                        fileMananger.music = new KeyValuePair<byte[], List<byte>>(subFileName!, new List<byte>());
 
                         fileMananger.music.Value.Value.AddRange(CopyOfRange(header.index + 28, header.index + header.chunkSize).ToList());
 
@@ -310,6 +310,8 @@ namespace FCopParser {
 
             foreach (var file in parsedData.files) {
 
+                if (file.ignore) { continue; }
+
                 CompileDataFile(file);
 
             }
@@ -326,12 +328,13 @@ namespace FCopParser {
                 subFileHeader.AddRange(BitConverter.GetBytes(36));
                 subFileHeader.AddRange(new List<byte>() { 0, 0, 0, 0, 0, 0, 0, 0 });
                 subFileHeader.AddRange(FourCC.FILEbytes);
-                subFileHeader.AddRange(Encoding.ASCII.GetBytes(subFile.Key));
+                subFileHeader.AddRange(subFile.Key);
 
                 // After the file name there's some data that I don't know what does yet, so this is just filling in the space
-                while (subFileHeader.Count < 36) {
-                    subFileHeader.Add(0);
-                }
+                // CORRECTION: IT'S IMPORTANT
+                //while (subFileHeader.Count < 36) {
+                //    subFileHeader.Add(0);
+                //}
 
                 // No need to check for fills, because the remainder was already filled
                 compiledFile.AddRange(subFileHeader);
@@ -347,7 +350,8 @@ namespace FCopParser {
 
             }
 
-            subFileSize = compiledFile.Count() - dataFileSize;
+            // The CTRL isn't part of the file yet, but it's still counted for in dataFileSize. To get an accurate size, 24 is added to the subFile Size
+            subFileSize = compiledFile.Count() - dataFileSize + 24;
 
             List<byte> musicfileHeader = new();
 
@@ -355,12 +359,13 @@ namespace FCopParser {
             musicfileHeader.AddRange(BitConverter.GetBytes(36));
             musicfileHeader.AddRange(new List<byte>() { 0, 0, 0, 0, 0, 0, 0, 0 });
             musicfileHeader.AddRange(FourCC.FILEbytes);
-            musicfileHeader.AddRange(Encoding.ASCII.GetBytes(parsedData.music!.Value.Key));
+            musicfileHeader.AddRange(parsedData.music!.Value.Key);
 
             // After the file name there's some data that I don't know what does yet, so this is just filling in the space
-            while (musicfileHeader.Count < 36) {
-                musicfileHeader.Add(0);
-            }
+            // CORRECTION: IT'S IMPORTANT
+            //while (musicfileHeader.Count < 36) {
+            //    musicfileHeader.Add(0);
+            //}
 
             compiledFile.AddRange(musicfileHeader);
             current24kSectionSize += 36;
@@ -411,7 +416,7 @@ namespace FCopParser {
                     compiledFile.AddRange(chunkHeader);
                     compiledFile.AddRange(parsedData.music.Value.Value.GetRange(chunkedMusicOffset, musicChunkSizeWithoutHeader));
 
-                    chunkedMusicOffset += dataChunkSizeWithoutHeader;
+                    chunkedMusicOffset += musicChunkSizeWithoutHeader;
                     musicLoopNumberIteration += musicLoopNumberIncrease;
                 }
 
@@ -446,6 +451,10 @@ namespace FCopParser {
 
             int offset = 0;
             int current24kSectionSize = 0;
+
+            if (BytesToStringReversed(offset, 4) != FourCC.CTRL) {
+                throw new InvalidFileException();
+            }
 
             while (offset < bytes.Length) {
 
@@ -513,20 +522,7 @@ namespace FCopParser {
 
                     var fileNameOffset = offset + 20;
 
-                    var fileName = "";
-
-                    foreach (int i in Enumerable.Range(0, 16)) {
-                        var byteChar = bytes[fileNameOffset + i];
-
-                        if (byteChar != 0) {
-                            fileName += BytesToString(fileNameOffset + i, 1);
-                        } else {
-                            break;
-                        }
-
-                    }
-
-                    offsets.Add(new ChunkHeader(offset, fourCC, size, fourCCType, fileName));
+                    offsets.Add(new ChunkHeader(offset, fourCC, size, fourCCType, CopyOfRange(fileNameOffset, fileNameOffset + 16)));
 
 
                 } 

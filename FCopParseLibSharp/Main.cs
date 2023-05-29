@@ -1,63 +1,76 @@
 ﻿using System.Collections;
 using FCopParser;
 
-var parser = new IFFParser(File.ReadAllBytes("Mp"));
+
+void LogActors() {
+
+    var parser = new IFFParser(File.ReadAllBytes("Mp"));
+
+    var actors = parser.parsedData.files.Where(file => {
+
+        return file.dataFourCC == "Cact" || file.dataFourCC == "Csac";
+
+    });
+
+    foreach (var file in actors) {
+
+        var actor = new FCopActor(file);
+
+        Console.Write(file.dataFourCC + " " + file.dataID + " " + actor.objectType + " ");
+
+        foreach (var r in actor.rpnsReferences) {
+
+            Console.Write(r + " ");
+
+        }
+
+        Console.WriteLine();
+
+    }
+
+}
+
+void LogCfun() {
+
+    var parser = new IFFParser(File.ReadAllBytes("Mp"));
 
 
-var foo = parser.parsedData.files.First(file => {
+    var foo = parser.parsedData.files.First(file => {
 
-    return file.dataFourCC == "Csac" && file.dataID == 28;
+        return file.dataFourCC == "Cfun";
 
-});
+    });
 
-//foo.tEXTData[27].line1 = new List<byte> { 0 };
-//foo.tEXTData[29].line2.RemoveRange(2, 2);
+    var fun = new FCopFunction(foo);
+
+}
+
+void LogRPNS() {
+
+    var parser = new IFFParser(File.ReadAllBytes("Mp"));
 
 
-//var indexOfDataChange = 824;
-//var dataMin = 2;
+    var foo = parser.parsedData.files.First(file => {
 
-//foreach (var item in foo.tFUNData) {
+        return file.dataFourCC == "RPNS";
 
-//    if (item.startingOffset > indexOfDataChange) {
-//        item.startingOffset -= dataMin;
-//    }
+    });
 
-//    if (item.endingOffset > indexOfDataChange) {
-//        item.endingOffset -= dataMin;
-//    }
+    var rpns = new FCopRPNS(foo);
 
-//}
+    foreach (var code in rpns.code) {
+        
+        foreach (var b in code) {
+            Console.Write(b + " ");
+        }
 
-//var item = foo.tEXTData[29];
+        Console.WriteLine();
 
-//item.line2[0] = 228;
-//item.line2[3] = 60;
+    }
 
-//item = foo.tEXTData[28];
+}
 
-//foreach (var i in Enumerable.Range(0, item.line2.Count)) {
-//    item.line2[i] = 0;
-//}
+LogRPNS();
 
-//foo.Compile();
 
-//new FCopFunction(foo.rawFile);
 
-//var index = parser.parsedData.files.FindIndex(file => {
-
-//    return file.dataFourCC == "Csac";
-
-//});
-
-//parser.parsedData.files.Insert(index, FCopActor.AddNetrualTurretTempMethod(500, 786170, 1200000));
-
-//foo.data = File.ReadAllBytes("C:/Users/Zewy/Desktop/source/fcopParser/output/8/Csac28.sac").ToList();
-
-//foo.dataID = 500;
-
-parser.Compile();
-
-File.WriteAllBytes("Mp MOD", parser.bytes);
-
-Console.WriteLine("bonk");
