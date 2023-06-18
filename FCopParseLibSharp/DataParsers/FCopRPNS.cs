@@ -8,7 +8,11 @@ namespace FCopParser {
 
         public List<List<byte>> code = new();
 
+        public List<byte> bytes = new();
+
         public FCopRPNS(IFFDataFile rawFile) {
+
+            bytes = rawFile.data;
 
             var currentLine = new List<byte>();
 

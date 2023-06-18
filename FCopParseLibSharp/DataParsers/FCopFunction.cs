@@ -75,31 +75,31 @@ namespace FCopParser {
 
             }
 
-            foreach (var item in tFUNData) {
-                Console.WriteLine(
-                    item.number1.ToString() + " " +
-                    item.number2.ToString() + " " +
-                    item.number3.ToString() + " " +
-                    item.startingOffset.ToString() + " " +
-                    item.endingOffset.ToString()
-                );
-            }
+            //foreach (var item in tFUNData) {
+            //    Console.WriteLine(
+            //        item.number1.ToString() + " " +
+            //        item.number2.ToString() + " " +
+            //        item.number3.ToString() + " " +
+            //        item.startingOffset.ToString() + " " +
+            //        item.endingOffset.ToString()
+            //    );
+            //}
 
-            foreach (var item in tEXTData) {
+            //foreach (var item in tEXTData) {
 
-                foreach (var b in item.line1) {
-                    Console.Write(b.ToString() + " ");
-                }
+            //    foreach (var b in item.line1) {
+            //        Console.Write(b.ToString() + " ");
+            //    }
 
-                Console.WriteLine();
+            //    Console.WriteLine();
 
-                foreach (var b in item.line2) {
-                    Console.Write(b.ToString() + " ");
-                }
+            //    foreach (var b in item.line2) {
+            //        Console.Write(b.ToString() + " ");
+            //    }
 
-                Console.WriteLine();
+            //    Console.WriteLine();
 
-            }
+            //}
 
         }
 

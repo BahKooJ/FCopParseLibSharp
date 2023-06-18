@@ -54,6 +54,10 @@ namespace FCopParser {
 
         public List<int> rpnsReferences = new();
 
+        public List<int> headerCodeData = new();
+
+        public List<byte> headerCode = new();
+
         public List<FCopResource> resourceReferences = new();
 
         public FCopActorScript script;
@@ -146,12 +150,21 @@ namespace FCopParser {
 
             var offset = 0;
 
-            foreach (var i in Enumerable.Range(0, headerData.Count / 4)) {
+            foreach (var i in Enumerable.Range(0, 3)) {
 
                 rpnsReferences.Add(Utils.BytesToInt(headerData.ToArray(), offset));
                 offset += 4;
 
             }
+
+            foreach (var i in Enumerable.Range(0, 2)) {
+
+                headerCodeData.Add(Utils.BytesToInt(headerData.ToArray(), offset));
+                offset += 4;
+
+            }
+
+            headerCode = headerData.GetRange(offset, headerData.Count - offset);
 
         }
 
