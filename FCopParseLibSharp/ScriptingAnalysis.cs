@@ -1,154 +1,154 @@
 ﻿
 using FCopParser;
 
-void LogActors() {
+//void LogActors() {
 
-    var parser = new IFFParser(File.ReadAllBytes("Mp"));
+//    var parser = new IFFParser(File.ReadAllBytes("Mp"));
 
-    var actors = parser.parsedData.files.Where(file => {
+//    var actors = parser.parsedData.files.Where(file => {
 
-        return file.dataFourCC == "Cact" || file.dataFourCC == "Csac";
+//        return file.dataFourCC == "Cact" || file.dataFourCC == "Csac";
 
-    });
+//    });
 
-    foreach (var file in actors) {
+//    foreach (var file in actors) {
 
-        var actor = new FCopActor(file);
+//        var actor = new FCopActor(file);
 
-        Console.Write(file.dataFourCC + " " + file.dataID + " " + actor.objectType + " ");
+//        Console.Write(file.dataFourCC + " " + file.dataID + " " + actor.objectType + " ");
 
-        foreach (var r in actor.rpnsReferences) {
+//        foreach (var r in actor.rpnsReferences) {
 
-            Console.Write(r + " ");
+//            Console.Write(r + " ");
 
-        }
+//        }
 
-        Console.WriteLine();
+//        Console.WriteLine();
 
-    }
+//    }
 
-}
+//}
 
-void LogCfun() {
+//void LogCfun() {
 
-    var parser = new IFFParser(File.ReadAllBytes("Mp"));
+//    var parser = new IFFParser(File.ReadAllBytes("Mp"));
 
 
-    var foo = parser.parsedData.files.First(file => {
+//    var foo = parser.parsedData.files.First(file => {
 
-        return file.dataFourCC == "Cfun";
+//        return file.dataFourCC == "Cfun";
 
-    });
+//    });
 
-    var fun = new FCopFunction(foo);
+//    var fun = new FCopFunction(foo);
 
-}
+//}
 
-void LogRPNS() {
+//void LogRPNS() {
 
-    var parser = new IFFParser(File.ReadAllBytes("Mp"));
+//    var parser = new IFFParser(File.ReadAllBytes("Mp"));
 
 
-    var foo = parser.parsedData.files.First(file => {
+//    var foo = parser.parsedData.files.First(file => {
 
-        return file.dataFourCC == "RPNS";
+//        return file.dataFourCC == "RPNS";
 
-    });
+//    });
 
-    var rpns = new FCopRPNS(foo);
+//    var rpns = new FCopRPNS(foo);
 
-    foreach (var code in rpns.code) {
+//    foreach (var code in rpns.code) {
 
-        foreach (var b in code) {
-            Console.Write(b + " ");
-        }
+//        foreach (var b in code) {
+//            Console.Write(b + " ");
+//        }
 
-        Console.WriteLine();
+//        Console.WriteLine();
 
-    }
+//    }
 
-}
+//}
 
 
 
-void CompareData() {
+//void CompareData() {
 
-    var parser = new IFFParser(File.ReadAllBytes("Mp"));
+//    var parser = new IFFParser(File.ReadAllBytes("Mp"));
 
-    var actors = parser.parsedData.files.Where(file => {
+//    var actors = parser.parsedData.files.Where(file => {
 
-        return file.dataFourCC == "Cact" || file.dataFourCC == "Csac";
+//        return file.dataFourCC == "Cact" || file.dataFourCC == "Csac";
 
-    });
+//    });
 
-    var rawRPNS = parser.parsedData.files.First(file => {
+//    var rawRPNS = parser.parsedData.files.First(file => {
 
-        return file.dataFourCC == "RPNS";
+//        return file.dataFourCC == "RPNS";
 
-    });
+//    });
 
-    var rpns = new FCopRPNS(rawRPNS);
+//    var rpns = new FCopRPNS(rawRPNS);
 
-    var rawCFun = parser.parsedData.files.First(file => {
+//    var rawCFun = parser.parsedData.files.First(file => {
 
-        return file.dataFourCC == "Cfun";
+//        return file.dataFourCC == "Cfun";
 
-    });
+//    });
 
-    var fun = new FCopFunction(rawCFun);
+//    var fun = new FCopFunction(rawCFun);
 
-    foreach (var file in actors) {
+//    foreach (var file in actors) {
 
-        var actor = new FCopActor(file);
+//        var actor = new FCopActor(file);
 
-        Console.Write(file.dataFourCC + " ID: " + file.dataID + " Type: " + actor.objectType + "\n");
+//        Console.Write(file.dataFourCC + " ID: " + file.dataID + " Type: " + actor.objectType + "\n");
 
 
-        foreach (var r in actor.rpnsReferences) {
+//        foreach (var r in actor.rpnsReferences) {
 
-            Console.Write("RPNS Ref: " + r + "\nByte Code: ");
+//            Console.Write("RPNS Ref: " + r + "\nByte Code: ");
 
-            foreach (var i in Enumerable.Range(r, rpns.bytes.Count)) {
+//            foreach (var i in Enumerable.Range(r, rpns.bytes.Count)) {
 
-                Console.Write(rpns.bytes[i] + " ");
+//                Console.Write(rpns.bytes[i] + " ");
 
-                if (rpns.bytes[i] == 0) {
-                    Console.WriteLine();
-                    break;
-                }
+//                if (rpns.bytes[i] == 0) {
+//                    Console.WriteLine();
+//                    break;
+//                }
 
-            }
+//            }
 
-        }
+//        }
 
-        Console.Write("Header Code Data: ");
+//        Console.Write("Header Code Data: ");
 
-        foreach (var hcd in actor.headerCodeData) {
+//        foreach (var hcd in actor.headerCodeData) {
 
-            Console.Write(hcd + " ");
+//            Console.Write(hcd + " ");
 
-        }
+//        }
 
-        Console.WriteLine();
+//        Console.WriteLine();
 
-        Console.Write("Header Code: ");
+//        Console.Write("Header Code: ");
 
-        foreach (var hc in actor.headerCode) {
+//        foreach (var hc in actor.headerCode) {
 
-            Console.Write(hc + " ");
+//            Console.Write(hc + " ");
 
-        }
+//        }
 
-        Console.WriteLine();
-        Console.WriteLine();
+//        Console.WriteLine();
+//        Console.WriteLine();
 
-    }
+//    }
 
-}
+//}
 
-var foo = new ScriptAnalysis(new() { (new IFFParser(File.ReadAllBytes("Mp")), "Mp") });
+//var foo = new ScriptAnalysis(new() { (new IFFParser(File.ReadAllBytes("Mp")), "Mp") });
 
-foo.CompareActorsRPNSRef();
+//foo.CompareActorsRPNSRef();
 
 
 

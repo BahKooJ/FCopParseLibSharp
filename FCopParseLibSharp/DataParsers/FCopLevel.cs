@@ -27,33 +27,15 @@ namespace FCopParser {
 
             this.fileManager = fileManager;
 
+            layout = FCopLevelLayoutParser.Parse(fileManager.files.First(file => {
+
+                return file.dataFourCC == "Cptc";
+
+            }));
+
             var rawCtilFiles = fileManager.files.Where(file => {
 
                 return file.dataFourCC == "Ctil";
-
-            }).ToList();
-
-            var rawBitmapFiles = fileManager.files.Where(file => {
-
-                return file.dataFourCC == "Cbmp";
-
-            }).ToList();
-
-            var rawNavMeshFiles = fileManager.files.Where(file => {
-
-                return file.dataFourCC == "Cnet";
-
-            }).ToList();
-
-            var rawObjectFiles = fileManager.files.Where(file => {
-
-                return file.dataFourCC == "Cobj";
-
-            }).ToList();
-
-            var rawActorFiles = fileManager.files.Where(file => {
-
-                return file.dataFourCC == "Cact" || file.dataFourCC == "Csac";
 
             }).ToList();
 
@@ -61,29 +43,7 @@ namespace FCopParser {
                 sections.Add(new FCopLevelSectionParser(rawFile).Parse(this));
             }
 
-            foreach (var rawFile in rawBitmapFiles) {
-                textures.Add(new FCopTexture(rawFile));
-            }
-
-            foreach (var rawFile in rawNavMeshFiles) {
-                navMeshes.Add(new FCopNavMesh(rawFile));
-            }
-
-            foreach (var rawFile in rawObjectFiles) {
-                objects.Add(new FCopObject(rawFile));
-            }
-
-            foreach (var rawFile in rawActorFiles) {
-
-                actors.Add(new FCopActor(rawFile));
-
-            }
-
-            layout = FCopLevelLayoutParser.Parse(fileManager.files.First(file => {
-
-                return file.dataFourCC == "Cptc";
-
-            }));
+            InitData();
 
         }
 
@@ -154,19 +114,36 @@ namespace FCopParser {
 
             }).ToList();
 
-            var rawBitmapFiles = fileManager.files.Where(file => {
 
-                return file.dataFourCC == "Cbmp";
+            //TODO: Clean this up
+            var oobSection = new FCopLevelSectionParser(rawCtilFiles[0]).Parse(this);
 
-            }).ToList();
+            oobSection.parser.rawFile = oobSection.parser.rawFile.Clone(1);
 
-            var rawNavMeshFiles = fileManager.files.Where(file => {
+            foreach (var h in oobSection.heightMap) {
+                h.SetPoint(19, 1);
+                h.SetPoint(-128, 2);
+                h.SetPoint(-128, 3);
+            }
 
-                return file.dataFourCC == "Cnet";
+            foreach (var tColumn in oobSection.tileColumns) {
 
-            }).ToList();
+                tColumn.tiles.Clear();
 
-            sections.Add(new FCopLevelSectionParser(rawCtilFiles[0]).Parse(this));
+                tColumn.tiles.Add(new Tile(new TileBitfield(1, 0, 0, 0, 68, 0), tColumn));
+
+            }
+
+            oobSection.tileGraphics.Clear();
+            oobSection.tileGraphics.Add(new TileGraphics(116, 6, 0, 1, 0));
+
+            oobSection.textureCoordinates.Clear();
+            oobSection.textureCoordinates.Add(57200);
+            oobSection.textureCoordinates.Add(57228);
+            oobSection.textureCoordinates.Add(50060);
+            oobSection.textureCoordinates.Add(50032);
+
+            sections.Add(oobSection);
 
             foreach (var row in layout) {
 
@@ -186,6 +163,24 @@ namespace FCopParser {
                         h.SetPoint(-80, 3);
                     }
 
+                    foreach (var tColumn in newSection.tileColumns) {
+
+                        tColumn.tiles.Clear();
+
+                        tColumn.tiles.Add(new Tile(new TileBitfield(1, 0, 0, 0, 68, 0), tColumn));
+
+                    }
+
+                    newSection.tileGraphics.Clear();
+                    newSection.tileGraphics.Add(new TileGraphics(116, 6, 0, 1, 0));
+
+                    newSection.textureCoordinates.Clear();
+                    newSection.textureCoordinates.Add(57200);
+                    newSection.textureCoordinates.Add(57228);
+                    newSection.textureCoordinates.Add(50060);
+                    newSection.textureCoordinates.Add(50032);
+
+
                     sections.Add(newSection);
 
                 }
@@ -193,6 +188,35 @@ namespace FCopParser {
 
             }
 
+            InitData();
+
+        }
+
+        void InitData() {
+
+            var rawBitmapFiles = fileManager.files.Where(file => {
+
+                return file.dataFourCC == "Cbmp";
+
+            }).ToList();
+
+            var rawNavMeshFiles = fileManager.files.Where(file => {
+
+                return file.dataFourCC == "Cnet";
+
+            }).ToList();
+
+            var rawObjectFiles = fileManager.files.Where(file => {
+
+                return file.dataFourCC == "Cobj";
+
+            }).ToList();
+
+            var rawActorFiles = fileManager.files.Where(file => {
+
+                return file.dataFourCC == "Cact" || file.dataFourCC == "Csac";
+
+            }).ToList();
 
             foreach (var rawFile in rawBitmapFiles) {
                 textures.Add(new FCopTexture(rawFile));
@@ -200,6 +224,16 @@ namespace FCopParser {
 
             foreach (var rawFile in rawNavMeshFiles) {
                 navMeshes.Add(new FCopNavMesh(rawFile));
+            }
+
+            foreach (var rawFile in rawObjectFiles) {
+                objects.Add(new FCopObject(rawFile));
+            }
+
+            foreach (var rawFile in rawActorFiles) {
+
+                actors.Add(new FCopActor(rawFile));
+
             }
 
         }
@@ -238,7 +272,9 @@ namespace FCopParser {
 
         public const int heightMapWdith = 17;
 
-        public List<HeightPoint> heightMap = new List<HeightPoint>();
+        public const int tileColumnsWidth = 16;
+
+        public List<HeightPoints> heightMap = new List<HeightPoints>();
 
         public List<TileColumn> tileColumns = new List<TileColumn>();
 
@@ -248,7 +284,7 @@ namespace FCopParser {
 
         public List<TileGraphics> tileGraphics = new List<TileGraphics>();
 
-        // Until the file can be fully parsed, we need to have the parser on hand
+        // Until the file can be fully parsed, we need to have the parser
         public FCopLevelSectionParser parser;
 
         public FCopLevelSection(FCopLevelSectionParser parser, FCopLevel parent) {
@@ -260,7 +296,7 @@ namespace FCopParser {
             this.tileGraphics = parser.tileGraphics;
 
             foreach (var parsePoint in parser.heightPoints) {
-                heightMap.Add(new HeightPoint(parsePoint));
+                heightMap.Add(new HeightPoints(parsePoint));
             }
 
             var count = 0;
@@ -274,19 +310,21 @@ namespace FCopParser {
                 // Makes the parsed bitfield into a Tile object.
                 var tiles = new List<Tile>();
 
-                foreach (var parsedTile in parsedTiles) {
-                    tiles.Add(new Tile(parsedTile));
-                }
-
                 // Grabs the heights. The heights have already been added so it uses the local height array.
-                var heights = new List<HeightPoint>();
+                var heights = new List<HeightPoints>();
 
                 heights.Add(GetHeightPoint(x, y));
                 heights.Add(GetHeightPoint(x + 1, y));
                 heights.Add(GetHeightPoint(x, y + 1));
                 heights.Add(GetHeightPoint(x + 1, y + 1));
 
-                tileColumns.Add(new TileColumn(x, y, tiles, heights));
+                var column = new TileColumn(x, y, tiles, heights);
+
+                foreach (var parsedTile in parsedTiles) {
+                    tiles.Add(new Tile(parsedTile, column));
+                }
+
+                tileColumns.Add(column);
 
                 x++;
                 if (x == 16) {
@@ -302,8 +340,12 @@ namespace FCopParser {
 
         }
 
-        public HeightPoint GetHeightPoint(int x, int y) {
+        public HeightPoints GetHeightPoint(int x, int y) {
             return heightMap[(y * heightMapWdith) + x];
+        }
+
+        public TileColumn GetTileColumn(int x, int y) {
+            return tileColumns[(y * tileColumnsWidth) + x];
         }
 
         class Chunk {
@@ -341,7 +383,7 @@ namespace FCopParser {
             List<ThirdSectionBitfield> thirdSectionBitfields = new List<ThirdSectionBitfield>();
             List<TileBitfield> tiles = new List<TileBitfield>();
 
-            List<Chunk> chunks = new List<Chunk>() { new Chunk(0,0) };
+            List<Chunk> chunks = new List<Chunk>() { new Chunk(0, 0) };
 
             foreach (var point in heightMap) {
                 heightPoints.Add(point.Compile());
@@ -355,7 +397,7 @@ namespace FCopParser {
             var y = 0;
             var chunkX = 0;
             var chunkY = 0;
-            foreach (var i in Enumerable.Range(0,256)) {
+            foreach (var i in Enumerable.Range(0, 256)) {
 
                 var offsetX = ((chunks.Count - 1) % 4) * 4;
                 var offsetY = ((chunks.Count - 1) / 4) * 4;
@@ -461,16 +503,14 @@ namespace FCopParser {
 
         }
 
-        public void RotateCounterClockwise() {
-            // X becomes Y
-            // Y becomes X - length
+        public void MirrorDiagonally() {
 
-            var newHeightOrder = new List<HeightPoint>();
+            var newHeightOrder = new List<HeightPoints>();
 
-            foreach (var hy in Enumerable.Range(0,17)) {
+            foreach (var hy in Enumerable.Range(0, 17)) {
 
                 foreach (var hx in Enumerable.Range(0, 17)) {
-                    newHeightOrder.Add(GetHeightPoint(16 - hy, hx));
+                    newHeightOrder.Add(GetHeightPoint(16 - hx, 16 - hy));
                 }
 
             }
@@ -482,9 +522,9 @@ namespace FCopParser {
             foreach (var ty in Enumerable.Range(0, 16)) {
 
                 foreach (var tx in Enumerable.Range(0, 16)) {
-                    var column = tileColumns[(tx * 16) + (15 - ty)];
+                    var column = tileColumns[((15 - ty) * 16) + (15 - tx)];
 
-                    var heights = new List<HeightPoint>();
+                    var heights = new List<HeightPoints>();
 
                     heights.Add(GetHeightPoint(tx, ty));
                     heights.Add(GetHeightPoint(tx + 1, ty));
@@ -502,41 +542,82 @@ namespace FCopParser {
 
             tileColumns = newTileColum;
 
+            var movedTiles = new List<Tile>();
+
             foreach (var column in tileColumns) {
 
                 var validTiles = new List<Tile>();
 
                 foreach (var tile in column.tiles) {
 
-                    var counterClockVertices = new List<TileVertex>();
+                    if (movedTiles.Contains(tile)) {
+                        validTiles.Add(tile);
+                        continue;
+                    }
+
+                    int ogMeshID = (int)MeshType.IDFromVerticies(tile.verticies);
+
+                    var mirorVertices = new List<TileVertex>();
 
                     foreach (var vertex in tile.verticies) {
 
-                        switch(vertex.vertexPosition) {
+                        switch (vertex.vertexPosition) {
 
                             case VertexPosition.TopLeft:
-                                counterClockVertices.Add(new TileVertex(vertex.heightChannel, VertexPosition.BottomLeft));
+                                mirorVertices.Add(new TileVertex(vertex.heightChannel, VertexPosition.BottomRight));
                                 break;
                             case VertexPosition.TopRight:
-                                counterClockVertices.Add(new TileVertex(vertex.heightChannel, VertexPosition.TopLeft));
+                                mirorVertices.Add(new TileVertex(vertex.heightChannel, VertexPosition.BottomLeft));
                                 break;
                             case VertexPosition.BottomLeft:
-                                counterClockVertices.Add(new TileVertex(vertex.heightChannel, VertexPosition.BottomRight));
+                                mirorVertices.Add(new TileVertex(vertex.heightChannel, VertexPosition.TopRight));
                                 break;
                             case VertexPosition.BottomRight:
-                                counterClockVertices.Add(new TileVertex(vertex.heightChannel, VertexPosition.TopRight));
+                                mirorVertices.Add(new TileVertex(vertex.heightChannel, VertexPosition.TopLeft));
                                 break;
 
                         }
 
                     }
 
-                    var counterClockID = MeshType.IDFromVerticies(counterClockVertices);
+                    var mirorVID = MeshType.IDFromVerticies(mirorVertices);
 
-                    if (counterClockID != null) {
-                        tile.verticies = MeshType.VerticiesFromID((int)counterClockID);
+                    if (mirorVID != null) {
+                        tile.verticies = MeshType.VerticiesFromID((int)mirorVID);
                         validTiles.Add(tile);
-                    } 
+                    }
+                    else {
+
+                        if (new int[] { 71, 72, 73, 74, 75, 76, 77, 78, 107, 109 }.Contains(ogMeshID)) {
+
+                            if (column.x < 15) {
+
+                                var nextColumn = tileColumns[(column.y * 16) + (column.x + 1)];
+
+                                tile.column = nextColumn;
+
+                                nextColumn.tiles.Add(tile);
+                                movedTiles.Add(tile);
+
+                            }
+
+                        }
+                        else if (new int[] { 79, 80, 81, 82, 83, 84, 85, 86, 108, 110 }.Contains(ogMeshID)) {
+
+                            if (column.y < 15) {
+
+                                var nextColumn = tileColumns[((column.y + 1) * 16) + (column.x)];
+
+                                tile.column = nextColumn;
+
+                                nextColumn.tiles.Add(tile);
+                                movedTiles.Add(tile);
+
+                            }
+
+                        }
+
+                    }
 
                 }
 
@@ -545,9 +626,9 @@ namespace FCopParser {
 
         }
 
-        public void MirorVertically() {
+        public void MirrorVertically() {
 
-            var newHeightOrder = new List<HeightPoint>();
+            var newHeightOrder = new List<HeightPoints>();
 
             foreach (var hy in Enumerable.Range(0, 17)) {
 
@@ -566,7 +647,7 @@ namespace FCopParser {
                 foreach (var tx in Enumerable.Range(0, 16)) {
                     var column = tileColumns[(ty * 16) + (15 - tx)];
 
-                    var heights = new List<HeightPoint>();
+                    var heights = new List<HeightPoints>();
 
                     heights.Add(GetHeightPoint(tx, ty));
                     heights.Add(GetHeightPoint(tx + 1, ty));
@@ -584,11 +665,20 @@ namespace FCopParser {
 
             tileColumns = newTileColum;
 
+            var movedTiles = new List<Tile>();
+
             foreach (var column in tileColumns) {
 
                 var validTiles = new List<Tile>();
 
                 foreach (var tile in column.tiles) {
+
+                    if (movedTiles.Contains(tile)) {
+                        validTiles.Add(tile);
+                        continue;
+                    }
+
+                    int ogMeshID = (int)MeshType.IDFromVerticies(tile.verticies);
 
                     var mirorVertices = new List<TileVertex>();
 
@@ -619,6 +709,24 @@ namespace FCopParser {
                         tile.verticies = MeshType.VerticiesFromID((int)mirorVID);
                         validTiles.Add(tile);
                     }
+                    else {
+
+                        if (new int[] { 71, 72, 73, 74, 75, 76, 77, 78, 107, 109 }.Contains(ogMeshID)) {
+
+                            if (column.x < 15) {
+
+                                var nextColumn = tileColumns[(column.y * 16) + (column.x + 1)];
+
+                                tile.column = nextColumn;
+
+                                nextColumn.tiles.Add(tile);
+                                movedTiles.Add(tile);
+
+                            }
+
+                        }
+
+                    }
 
                 }
 
@@ -628,11 +736,122 @@ namespace FCopParser {
 
         }
 
+        public void MirrorHorizontally() {
+
+            var newHeightOrder = new List<HeightPoints>();
+
+            foreach (var hy in Enumerable.Range(0, 17)) {
+
+                foreach (var hx in Enumerable.Range(0, 17)) {
+                    newHeightOrder.Add(GetHeightPoint(hx, 16 - hy));
+                }
+
+            }
+
+            heightMap = newHeightOrder;
+
+            var newTileColum = new List<TileColumn>();
+
+            foreach (var ty in Enumerable.Range(0, 16)) {
+
+                foreach (var tx in Enumerable.Range(0, 16)) {
+                    var column = tileColumns[((15 - ty) * 16) + tx];
+
+                    var heights = new List<HeightPoints>();
+
+                    heights.Add(GetHeightPoint(tx, ty));
+                    heights.Add(GetHeightPoint(tx + 1, ty));
+                    heights.Add(GetHeightPoint(tx, ty + 1));
+                    heights.Add(GetHeightPoint(tx + 1, ty + 1));
+
+                    column.x = tx;
+                    column.y = ty;
+                    column.heights = heights;
+
+                    newTileColum.Add(column);
+                }
+
+            }
+
+            tileColumns = newTileColum;
+
+            var movedTiles = new List<Tile>();
+
+            foreach (var column in tileColumns) {
+
+                var validTiles = new List<Tile>();
+
+                foreach (var tile in column.tiles) {
+
+                    if (movedTiles.Contains(tile)) {
+                        validTiles.Add(tile);
+                        continue;
+                    }
+
+                    int ogMeshID = (int)MeshType.IDFromVerticies(tile.verticies);
+
+                    var mirorVertices = new List<TileVertex>();
+
+                    foreach (var vertex in tile.verticies) {
+
+                        switch (vertex.vertexPosition) {
+
+                            case VertexPosition.TopLeft:
+                                mirorVertices.Add(new TileVertex(vertex.heightChannel, VertexPosition.BottomLeft));
+                                break;
+                            case VertexPosition.TopRight:
+                                mirorVertices.Add(new TileVertex(vertex.heightChannel, VertexPosition.BottomRight));
+                                break;
+                            case VertexPosition.BottomLeft:
+                                mirorVertices.Add(new TileVertex(vertex.heightChannel, VertexPosition.TopLeft));
+                                break;
+                            case VertexPosition.BottomRight:
+                                mirorVertices.Add(new TileVertex(vertex.heightChannel, VertexPosition.TopRight));
+                                break;
+
+                        }
+
+                    }
+
+                    var mirorVID = MeshType.IDFromVerticies(mirorVertices);
+
+                    if (mirorVID != null) {
+                        tile.verticies = MeshType.VerticiesFromID((int)mirorVID);
+                        validTiles.Add(tile);
+                    }
+                    else {
+
+                        if (new int[] { 79, 80, 81, 82, 83, 84, 85, 86, 108, 110 }.Contains(ogMeshID)) {
+
+                            if (column.y < 15) {
+
+                                var nextColumn = tileColumns[((column.y + 1) * 16) + (column.x)];
+
+                                tile.column = nextColumn;
+
+                                nextColumn.tiles.Add(tile);
+                                movedTiles.Add(tile);
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+                column.tiles = validTiles;
+            }
+
+
+        }
+
+
         public void Overwrite(FCopLevelSection section) {
 
             heightMap.Clear();
             foreach (var newHeight in section.heightMap) {
-                heightMap.Add(new HeightPoint(newHeight.height1, newHeight.height2, newHeight.height3));
+                heightMap.Add(new HeightPoints(newHeight.height1, newHeight.height2, newHeight.height3));
             }
 
             tileColumns.Clear();
@@ -642,18 +861,20 @@ namespace FCopParser {
 
                 var newTiles = new List<Tile>();
 
-                foreach (var newTile in newColumn.tiles) {
-                    newTiles.Add(new Tile(newTile.Compile()));
-                }
-
-                var heights = new List<HeightPoint>();
+                var heights = new List<HeightPoints>();
 
                 heights.Add(GetHeightPoint(x, y));
                 heights.Add(GetHeightPoint(x + 1, y));
                 heights.Add(GetHeightPoint(x, y + 1));
                 heights.Add(GetHeightPoint(x + 1, y + 1));
 
-                tileColumns.Add(new TileColumn(x, y, newTiles, heights));
+                var column = new TileColumn(x, y, newTiles, heights);
+
+                foreach (var newTile in newColumn.tiles) {
+                    newTiles.Add(new Tile(newTile.Compile(), column));
+                }
+
+                tileColumns.Add(column);
 
                 x++;
                 if (x == 16) {
@@ -679,7 +900,7 @@ namespace FCopParser {
 
     }
 
-    public class HeightPoint {
+    public class HeightPoints {
 
         public const float multiplyer = 30f;
         public const float maxValue = SByte.MaxValue / multiplyer;
@@ -689,21 +910,21 @@ namespace FCopParser {
         public float height2;
         public float height3;
 
-        public HeightPoint(float height1, float height2, float height3) {
+        public HeightPoints(float height1, float height2, float height3) {
             this.height1 = height1;
             this.height2 = height2;
             this.height3 = height3;
         }
 
-        public HeightPoint(HeightPoint3 parsedHeightPoint3) {
+        public HeightPoints(HeightPoint3 parsedHeightPoint3) {
             this.height1 = parsedHeightPoint3.height1 / multiplyer;
             this.height2 = parsedHeightPoint3.height2 / multiplyer;
             this.height3 = parsedHeightPoint3.height3 / multiplyer;
         }
 
-        public float GetPoint(int index) {
+        public float GetPoint(int channel) {
 
-            switch(index) {
+            switch (channel) {
                 case 1: return height1;
                 case 2: return height2;
                 case 3: return height3;
@@ -731,7 +952,8 @@ namespace FCopParser {
 
                     if (height1 > maxValue) {
                         height1 = maxValue;
-                    } else if (height1 < minValue) {
+                    }
+                    else if (height1 < minValue) {
                         height1 = minValue;
                     }
 
@@ -743,7 +965,8 @@ namespace FCopParser {
 
                     if (height2 > maxValue) {
                         height2 = maxValue;
-                    } else if (height2 < minValue) {
+                    }
+                    else if (height2 < minValue) {
                         height2 = minValue;
                     }
 
@@ -755,14 +978,15 @@ namespace FCopParser {
 
                     if (height3 > maxValue) {
                         height3 = maxValue;
-                    } else if (height3 < minValue) {
+                    }
+                    else if (height3 < minValue) {
                         height3 = minValue;
                     }
 
                     height3 = (float)Math.Round(height3 * multiplyer) / multiplyer;
 
                     break;
-                default: break; 
+                default: break;
             }
 
         }
@@ -776,7 +1000,8 @@ namespace FCopParser {
 
                     if (height1 > maxValue) {
                         height1 = maxValue;
-                    } else if (height1 < minValue) {
+                    }
+                    else if (height1 < minValue) {
                         height1 = minValue;
                     }
 
@@ -787,7 +1012,8 @@ namespace FCopParser {
 
                     if (height2 > maxValue) {
                         height2 = maxValue;
-                    } else if (height2 < minValue) {
+                    }
+                    else if (height2 < minValue) {
                         height2 = minValue;
                     }
 
@@ -798,7 +1024,8 @@ namespace FCopParser {
 
                     if (height3 > maxValue) {
                         height3 = maxValue;
-                    } else if (height3 < minValue) {
+                    }
+                    else if (height3 < minValue) {
                         height3 = minValue;
                     }
 
@@ -827,9 +1054,9 @@ namespace FCopParser {
 
         public List<Tile> tiles;
 
-        public List<HeightPoint> heights;
+        public List<HeightPoints> heights;
 
-        public TileColumn(int x, int y, List<Tile> tiles, List<HeightPoint> heights) {
+        public TileColumn(int x, int y, List<Tile> tiles, List<HeightPoints> heights) {
             this.x = x;
             this.y = y;
             this.tiles = tiles;
@@ -838,8 +1065,11 @@ namespace FCopParser {
 
     }
 
+    // TODO: Naming is wrong
     // Tiles are sorted into 4x4 chunks
     public class Tile {
+
+        public TileColumn column;
 
         public bool isStartInColumnArray;
         public List<TileVertex> verticies;
@@ -849,7 +1079,9 @@ namespace FCopParser {
 
         public TileBitfield parsedTile;
 
-        public Tile(TileBitfield parsedTile) {
+        public Tile(TileBitfield parsedTile, TileColumn column) {
+
+            this.column = column;
 
             isStartInColumnArray = parsedTile.number1 == 1;
 

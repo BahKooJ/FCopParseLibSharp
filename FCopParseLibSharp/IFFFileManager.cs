@@ -16,6 +16,30 @@ namespace FCopParser {
         // Nothing but the music, the key is the name of the song.
         public KeyValuePair<byte[], List<byte>>? music = null;
 
+        public void ExportFile(string fourCC, int id, string dir = "") {
+
+            IFFDataFile file = files.First(file => { 
+                return file.dataID == id && file.dataFourCC == fourCC;
+            });
+
+            File.WriteAllBytes(dir, file.data.ToArray());
+
+        }
+
+        public void ExportAll(string fourCC, string dir = "") {
+
+            var files = this.files.Where(file => {
+                return file.dataFourCC == fourCC;
+            });
+
+            foreach (var file in files) {
+
+                File.WriteAllBytes(dir + file.dataID, file.data.ToArray());
+
+            }
+
+        }
+
     }
 
     // Object for storing important meta data to a game file.

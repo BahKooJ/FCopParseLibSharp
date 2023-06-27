@@ -312,7 +312,7 @@ namespace FCopParser {
             return layout;
 
         }
-        
+
         public static void Compile(List<List<int>> parsedData, IFFDataFile rawFile) {
 
             var total = new List<byte>();
@@ -439,7 +439,7 @@ namespace FCopParser {
 
         }
 
-        static public int SetPixel(int x, int y) { 
+        static public int SetPixel(int x, int y) {
             return (y * 256) + x;
         }
 
@@ -448,8 +448,10 @@ namespace FCopParser {
     public struct TileGraphics {
 
         public int number1;
+        // BMP ID
         public int number2;
         public int number3;
+        // Rect tile
         public int number4;
         public int number5;
 
