@@ -13,7 +13,6 @@ namespace FCopParser {
 
 
         public List<CFuntFUNData> tFUNData = new();
-        public List<CFuntEXTData> tEXTData = new();
 
         public IFFDataFile rawFile;
 
@@ -53,23 +52,19 @@ namespace FCopParser {
             var nextIndex = 1;
             foreach (var item in tFUNData) {
 
-                var tEXTItem = new CFuntEXTData();
-
-                tEXTItem.line1 = rawFile.data.GetRange(offset + item.startingOffset, item.endingOffset - item.startingOffset);
+                item.line1 = rawFile.data.GetRange(offset + item.startingOffset, item.endingOffset - item.startingOffset);
 
                 if (nextIndex < tFUNData.Count) {
 
                     var nextItem = tFUNData[nextIndex];
 
-                    tEXTItem.line2 = rawFile.data.GetRange(offset + item.endingOffset, nextItem.startingOffset - item.endingOffset);
+                    item.line2 = rawFile.data.GetRange(offset + item.endingOffset, nextItem.startingOffset - item.endingOffset);
 
                 } else {
 
-                    tEXTItem.line2 = rawFile.data.GetRange(offset + item.endingOffset, rawFile.data.Count - (offset + item.endingOffset));
+                    item.line2 = rawFile.data.GetRange(offset + item.endingOffset, rawFile.data.Count - (offset + item.endingOffset));
 
                 }
-
-                tEXTData.Add(tEXTItem);
 
                 nextIndex++;
 
@@ -125,7 +120,7 @@ namespace FCopParser {
 
             var tEXTTotal = new List<byte>();
 
-            foreach (var item in tEXTData) {
+            foreach (var item in tFUNData) {
 
                 tEXTTotal.AddRange(item.line1);
                 tEXTTotal.AddRange(item.line2);
@@ -176,6 +171,8 @@ namespace FCopParser {
     public class CFuntFUNData {
 
         public int number1, number2, number3, startingOffset, endingOffset;
+        public List<byte> line1 = new();
+        public List<byte> line2 = new();
 
         public CFuntFUNData(int number1, int number2, int number3, int startingOffset, int endingOffset) {
             this.number1 = number1;
@@ -184,17 +181,6 @@ namespace FCopParser {
             this.startingOffset = startingOffset;
             this.endingOffset = endingOffset;
         }
-    }
-
-    public class CFuntEXTData {
-
-        public List<byte> line1 = new();
-        public List<byte> line2 = new();
-
-        public CFuntEXTData() {
-
-        }
-
     }
 
 }

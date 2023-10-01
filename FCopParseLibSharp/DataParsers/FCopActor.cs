@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using static ScriptAnalysis;
 
 namespace FCopParser {
 
@@ -107,6 +108,18 @@ namespace FCopParser {
         }
 
         virtual public void Compile() {
+
+            rawFile.additionalData.Clear();
+
+            foreach (var rpnsRef in rpnsReferences) {
+                rawFile.additionalData.AddRange(BitConverter.GetBytes(rpnsRef));
+            }
+
+            foreach (var i in headerCodeData) {
+                rawFile.additionalData.AddRange(BitConverter.GetBytes(i));
+            }
+
+            rawFile.additionalData.AddRange(headerCode);
 
             rawFile.data.RemoveRange(yOffset, 4);
             rawFile.data.InsertRange(yOffset, BitConverter.GetBytes(y));
@@ -364,6 +377,39 @@ namespace FCopParser {
 
     }
 
+    public class FCopScript14 : FCopActorScript {
+
+        public FCopActor actor { get; set; }
+
+        int number1;
+        int number2;
+        int number3;
+        int number4;
+        int number5;
+        int number6;
+        int number7;
+
+
+        public FCopScript14(FCopActor actor) {
+            this.actor = actor;
+
+            number1 = Utils.BytesToShort(actor.rawFile.data.ToArray(), 28);
+            number2 = Utils.BytesToShort(actor.rawFile.data.ToArray(), 30);
+            number3 = Utils.BytesToShort(actor.rawFile.data.ToArray(), 32);
+            number4 = Utils.BytesToShort(actor.rawFile.data.ToArray(), 44);
+            number5 = Utils.BytesToShort(actor.rawFile.data.ToArray(), 46);
+            number6 = Utils.BytesToShort(actor.rawFile.data.ToArray(), 48);
+            number7 = Utils.BytesToShort(actor.rawFile.data.ToArray(), 50);
+
+        }
+
+
+        public void Compile() {
+
+        }
+
+    }
+
     public class FCopScript28 : FCopActorScript {
 
         public FCopActor actor { get; set; }
@@ -419,20 +465,20 @@ namespace FCopParser {
 
         public FCopActor actor { get; set; }
 
-        public int number1;
-        public int number2;
+        public int hitboxWidth;
+        public int hitbixHeight;
         public int number3;
-        public int number4;
-        public int number5;
+        public int triggerType;
+        public int actorToTest;
 
         public FCopScript95(FCopActor actor) {
+            this.actor = actor;
 
-            number1 = Utils.BytesToShort(actor.rawFile.data.ToArray(), 28);
-            number2 = Utils.BytesToShort(actor.rawFile.data.ToArray(), 30);
+            hitboxWidth = Utils.BytesToShort(actor.rawFile.data.ToArray(), 28);
+            hitbixHeight = Utils.BytesToShort(actor.rawFile.data.ToArray(), 30);
             number3 = Utils.BytesToShort(actor.rawFile.data.ToArray(), 32);
-            number4 = Utils.BytesToShort(actor.rawFile.data.ToArray(), 34);
-            number5 = Utils.BytesToInt(actor.rawFile.data.ToArray(), 36);
-
+            triggerType = Utils.BytesToShort(actor.rawFile.data.ToArray(), 34);
+            actorToTest = Utils.BytesToInt(actor.rawFile.data.ToArray(), 36);
 
         }
 

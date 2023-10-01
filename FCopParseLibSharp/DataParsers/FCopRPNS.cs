@@ -10,7 +10,11 @@ namespace FCopParser {
 
         public List<byte> bytes = new();
 
+        IFFDataFile rawFile;
+
         public FCopRPNS(IFFDataFile rawFile) {
+
+            this.rawFile = rawFile;
 
             bytes = rawFile.data;
 
@@ -29,6 +33,12 @@ namespace FCopParser {
                 }
 
             }
+
+        }
+
+        public void Compile() {
+
+            rawFile.data = bytes;
 
         }
 
