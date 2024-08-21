@@ -32,6 +32,17 @@ namespace FCopParser {
             public readonly static List<byte> SWVRbytes = new() { 82, 86, 87, 83 };
             public readonly static List<byte> FILEbytes = new() { 69, 76, 73, 70 };
             public readonly static List<byte> MSICbytes = new() { 67, 73, 83, 77 };
+
+            // PS1
+            public const string VAGB = "VAGB";
+            public const string VAGM = "VAGM";
+            public const string CANM = "CANM";
+
+            public readonly static List<byte> VAGBbytes = new() { 66, 71, 65, 86 };
+            public readonly static List<byte> VAGMbytes = new() { 77, 71, 65, 86 };
+            public readonly static List<byte> CANMbytes = new() { 77, 78, 65, 67 };
+            public readonly static List<byte> MDECbytes = new() { 67, 69, 68, 77 };
+
         }
 
         // The normal length of a chunk header.
@@ -49,11 +60,17 @@ namespace FCopParser {
         // The maximum size of a MSIC chunk
         const int musicChunkSize = 24540;
 
+        // The maximum size of a VAGM chunk (PS1)
+        const int vagmMusicChunkSize = 24476;
+
         // The maximum size of a MSIC chunk not including the size of the header
         const int musicChunkSizeWithoutHeader = 24512;
 
-        const int musicLoopNumberIncrease = 65536;
+        // The maximum size of a VAGM chunk not including the size of the header (PS1)
+        const int vagmMusicChunkSizeWithoutHeader = 24448;
 
+        // These are unused
+        const int musicLoopNumberIncrease = 65536;
         const int randomMusicNumber = 12256;
 
         // All chunks in the IFF file must fill a perfeck 24KB size.
@@ -102,7 +119,7 @@ namespace FCopParser {
 
                     subFileName = header.subFileName;
 
-                } 
+                }
                 else if (header.fourCCDeclaration == FourCC.MSIC) {
 
                     if (fileMananger.music == null) {
@@ -111,10 +128,71 @@ namespace FCopParser {
 
                         fileMananger.music.Value.Value.AddRange(CopyOfRange(header.index + 28, header.index + header.chunkSize).ToList());
 
-                    } 
+                    }
                     else {
 
                         //todo: Magic number 28 is the size of the music header, there are two numbers after the header that are unknown
+                        //update: I know what they are now but I'm too lazy to refactor. They are 3 numbers, chunk count, chunk iteration, and the size divided by 2
+
+                        fileMananger.music.Value.Value.AddRange(CopyOfRange(header.index + 28, header.index + header.chunkSize).ToList());
+
+                    }
+
+                }
+                // PS1
+                else if (header.fourCCDeclaration == FourCC.VAGB) {
+
+                    if (subFileName == null) {
+                        throw new Exception("This should only be inside of of a SWVR?");
+                    }
+
+                    var vagbFile = new IFFDataFile(0,
+                        CopyOfRange(header.index + 20, header.index + header.chunkSize).ToList(),
+                        header.fourCCDeclaration, 0, new()
+                        );
+
+                    if (!fileMananger.subFiles.ContainsKey(subFileName)) {
+                        fileMananger.subFiles[subFileName] = new List<IFFDataFile> { vagbFile };
+                    }
+                    else {
+                        fileMananger.subFiles[subFileName].Add(vagbFile);
+                    }
+
+                }
+                else if (header.fourCCDeclaration == FourCC.CANM) {
+
+                    if (subFileName == null) {
+                        throw new Exception("This should only be inside of of a SWVR?");
+                    }
+
+                    var camnFile = new IFFDataFile(0,
+                        CopyOfRange(header.index + 20, header.index + header.chunkSize).ToList(),
+                        header.fourCCDeclaration, 0, new()
+                        );
+
+                    if (!fileMananger.subFiles.ContainsKey(subFileName)) {
+                        fileMananger.subFiles[subFileName] = new List<IFFDataFile> { camnFile };
+                    }
+                    else {
+                        fileMananger.subFiles[subFileName].Add(camnFile);
+                    }
+
+                }
+                else if (header.fourCCDeclaration == FourCC.VAGM) {
+
+                    fileMananger.isPS1 = true;
+
+                    if (fileMananger.music == null) {
+
+                        fileMananger.music = new KeyValuePair<byte[], List<byte>>(subFileName!, new List<byte>());
+
+                        fileMananger.music.Value.Value.AddRange(CopyOfRange(header.index + 28, header.index + header.chunkSize).ToList());
+
+                    }
+                    else {
+
+                        //todo: Magic number 28 is the size of the music header, there are two numbers after the header that are unknown
+                        //update: I know what they are now but I'm too lazy to refactor. They are 3 numbers, chunk count, chunk iteration, and the size divided by 2
 
                         fileMananger.music.Value.Value.AddRange(CopyOfRange(header.index + 28, header.index + header.chunkSize).ToList());
 
@@ -127,10 +205,10 @@ namespace FCopParser {
                     if (file == null && header.fileHeader != null) {
 
                         file = new IFFDataFile(
-                            header.fileHeader.startNumber, 
-                            new List<byte>(), 
-                            header.fileHeader.fourCCData, 
-                            header.fileHeader.dataID, 
+                            header.fileHeader.startNumber,
+                            new List<byte>(),
+                            header.fileHeader.fourCCData,
+                            header.fileHeader.dataID,
                             header.fileHeader.actData.ToList()
                         );
 
@@ -138,7 +216,7 @@ namespace FCopParser {
 
                     }
 
-                } 
+                }
                 else if (header.fourCCType == FourCC.SDAT && file != null && dataChunksToAdd != 0) {
 
                     file.data.AddRange(CopyOfRange(header.index + chunkHeaderLength, header.index + header.chunkSize).ToList());
@@ -150,13 +228,14 @@ namespace FCopParser {
 
                             if (!fileMananger.subFiles.ContainsKey(subFileName)) {
                                 fileMananger.subFiles[subFileName] = new List<IFFDataFile> { file };
-                            } else {
+                            }
+                            else {
                                 fileMananger.subFiles[subFileName].Add(file);
                             }
 
                             file = null;
 
-                        } 
+                        }
                         else {
 
                             fileMananger.files.Add(file);
@@ -194,9 +273,22 @@ namespace FCopParser {
 
                     var difference = iffFileSectionSize - current24kSectionSize;
 
-                    // TODO: Change to <= 8 check
                     if (difference == 4) {
                         compiledFile.AddRange(FourCC.FILLbytes);
+                        current24kSectionSize = 0;
+                        return;
+                    }
+
+                    if (difference < 4) {
+                        compiledFile.AddRange(FourCC.FILLbytes.GetRange(0, difference));
+                        current24kSectionSize = 0;
+                        return;
+                    }
+
+                    if (difference <= 8) {
+                        compiledFile.AddRange(FourCC.FILLbytes);
+                        var size = BitConverter.GetBytes(difference).ToList();
+                        compiledFile.AddRange(size.GetRange(0, difference - 4));
                         current24kSectionSize = 0;
                         return;
                     }
@@ -282,7 +374,8 @@ namespace FCopParser {
                         compiledFile.AddRange(chunkHeader);
                         compiledFile.AddRange(file.data.GetRange(chunkedDataOffset, chunkSize));
 
-                    } else {
+                    }
+                    else {
 
                         var chunkHeader = new List<byte>();
 
@@ -342,7 +435,53 @@ namespace FCopParser {
 
                 foreach (var file in subFile.Value) {
 
-                    CompileDataFile(file);
+                    if (file.dataFourCC == FourCC.VAGB) {
+
+                        var chunkHeader = new List<byte>();
+
+                        chunkHeader.AddRange(FourCC.VAGBbytes);
+                        chunkHeader.AddRange(BitConverter.GetBytes(20 + file.data.Count));
+                        chunkHeader.AddRange(new List<byte>() { 0, 0, 0, 0, 0, 0, 0, 0 });
+                        chunkHeader.AddRange(FourCC.VAGBbytes);
+
+
+
+                        if (subFile.Value.Count > 1) {
+                            FILLCheck(chunkHeader.Count + file.data.Count);
+                        }
+
+                        compiledFile.AddRange(chunkHeader);
+                        compiledFile.AddRange(file.data);
+
+                        current24kSectionSize += chunkHeader.Count + file.data.Count;
+
+                    }
+                    else if (file.dataFourCC == FourCC.CANM) {
+
+                        var chunkHeader = new List<byte>();
+
+                        chunkHeader.AddRange(FourCC.CANMbytes);
+                        chunkHeader.AddRange(BitConverter.GetBytes(20 + file.data.Count));
+                        // In all my time looking at these files I've never seen these 8 bytes be something other than 0.
+                        // Does it matter though?
+                        chunkHeader.AddRange(new List<byte>() { 0, 0, 0, 0, 0, 0, 0, 0 });
+                        chunkHeader.AddRange(FourCC.MDECbytes);
+
+                        if (subFile.Value.Count > 1) {
+                            FILLCheck(chunkHeader.Count + file.data.Count);
+                        }
+
+                        compiledFile.AddRange(chunkHeader);
+                        compiledFile.AddRange(file.data);
+
+                        current24kSectionSize += chunkHeader.Count + file.data.Count;
+
+                    }
+                    else {
+
+                        CompileDataFile(file);
+
+                    }
 
                 }
 
@@ -372,52 +511,69 @@ namespace FCopParser {
 
             var musicDataSize = parsedData.music.Value.Value.Count();
 
-            var musicChunkAmount = DataChunksBySize(musicDataSize, musicChunkSize, musicHeaderLength);
-
             var chunkedMusicOffset = 0;
 
-            var musicLoopNumberIteration = musicChunkAmount;
+            var chunkIteration = 0;
+
+            var currentMusicChunkSize = parsedData.isPS1 ? vagmMusicChunkSize : musicChunkSize;
+            var currentMusicChunkSizeWithoutHeader = parsedData.isPS1 ? vagmMusicChunkSizeWithoutHeader : musicChunkSizeWithoutHeader;
+
+            var musicChunkAmount = DataChunksBySize(musicDataSize, currentMusicChunkSize, musicHeaderLength);
+
+            void MakeMusicHeader(int chunkSize) {
+
+                var chunkHeader = new List<byte>();
+
+                if (parsedData.isPS1) {
+
+                    chunkHeader.AddRange(FourCC.VAGMbytes);
+                    chunkHeader.AddRange(BitConverter.GetBytes(chunkSize));
+                    chunkHeader.AddRange(new List<byte>() { 0, 0, 0, 0, 0, 0, 0, 0 });
+                    chunkHeader.AddRange(FourCC.VAGMbytes);
+                    chunkHeader.AddRange(BitConverter.GetBytes((ushort)musicChunkAmount));
+                    chunkHeader.AddRange(BitConverter.GetBytes((ushort)chunkIteration));
+                    chunkHeader.AddRange(BitConverter.GetBytes((chunkSize - musicHeaderLength) / 2));
+
+                }
+                else {
+
+                    chunkHeader.AddRange(FourCC.MSICbytes);
+                    chunkHeader.AddRange(BitConverter.GetBytes(chunkSize));
+                    chunkHeader.AddRange(new List<byte>() { 0, 0, 0, 0, 0, 0, 0, 0 });
+                    chunkHeader.AddRange(FourCC.MSICbytes);
+                    chunkHeader.AddRange(BitConverter.GetBytes((ushort)musicChunkAmount));
+                    chunkHeader.AddRange(BitConverter.GetBytes((ushort)chunkIteration));
+                    chunkHeader.AddRange(BitConverter.GetBytes((chunkSize - musicHeaderLength) / 2));
+
+                }
+
+                compiledFile.AddRange(chunkHeader);
+
+                chunkIteration++;
+
+            }
 
             foreach (int i in Enumerable.Range(0, musicChunkAmount)) {
 
-                if (chunkedMusicOffset + musicChunkSizeWithoutHeader > musicDataSize) {
-
-                    var chunkHeader = new List<byte>();
+                if (chunkedMusicOffset + currentMusicChunkSizeWithoutHeader > musicDataSize) {
 
                     var chunkSize = musicDataSize - chunkedMusicOffset;
 
-                    chunkHeader.AddRange(FourCC.MSICbytes);
-                    chunkHeader.AddRange(BitConverter.GetBytes(chunkSize + musicHeaderLength));
-                    chunkHeader.AddRange(new List<byte>() { 0, 0, 0, 0, 0, 0, 0, 0 });
-                    chunkHeader.AddRange(FourCC.MSICbytes);
-                    chunkHeader.AddRange(BitConverter.GetBytes(musicLoopNumberIteration));
-                    chunkHeader.AddRange(BitConverter.GetBytes(randomMusicNumber));
-
                     FILLCheck(chunkSize + musicHeaderLength);
                     current24kSectionSize += chunkSize + musicHeaderLength;
-                    compiledFile.AddRange(chunkHeader);
+                    MakeMusicHeader(chunkSize + musicHeaderLength);
                     compiledFile.AddRange(parsedData.music.Value.Value.GetRange(chunkedMusicOffset, chunkSize));
 
-                    musicLoopNumberIteration += musicLoopNumberIncrease;
+                }
+                else {
 
-                } else {
+                    FILLCheck(currentMusicChunkSize);
+                    current24kSectionSize += currentMusicChunkSize;
+                    MakeMusicHeader(currentMusicChunkSize);
+                    compiledFile.AddRange(parsedData.music.Value.Value.GetRange(chunkedMusicOffset, currentMusicChunkSizeWithoutHeader));
 
-                    var chunkHeader = new List<byte>();
+                    chunkedMusicOffset += currentMusicChunkSizeWithoutHeader;
 
-                    chunkHeader.AddRange(FourCC.MSICbytes);
-                    chunkHeader.AddRange(BitConverter.GetBytes(musicChunkSize));
-                    chunkHeader.AddRange(new List<byte>() { 0, 0, 0, 0, 0, 0, 0, 0 });
-                    chunkHeader.AddRange(FourCC.MSICbytes);
-                    chunkHeader.AddRange(BitConverter.GetBytes(musicLoopNumberIteration));
-                    chunkHeader.AddRange(BitConverter.GetBytes(randomMusicNumber));
-
-                    FILLCheck(musicChunkSize);
-                    current24kSectionSize += musicChunkSize;
-                    compiledFile.AddRange(chunkHeader);
-                    compiledFile.AddRange(parsedData.music.Value.Value.GetRange(chunkedMusicOffset, musicChunkSizeWithoutHeader));
-
-                    chunkedMusicOffset += musicChunkSizeWithoutHeader;
-                    musicLoopNumberIteration += musicLoopNumberIncrease;
                 }
 
             }
@@ -472,7 +628,7 @@ namespace FCopParser {
 
                     continue;
 
-                } 
+                }
                 else {
 
                     current24kSectionSize += size;
@@ -491,7 +647,7 @@ namespace FCopParser {
 
                         offsets.Add(new ChunkHeader(offset, fourCC, size, fourCCType));
 
-                    } 
+                    }
                     else if (fourCCType == FourCC.SHDR) {
 
                         var offsetOfHeader = offset + chunkHeaderLength;
@@ -506,14 +662,25 @@ namespace FCopParser {
 
                         offsets.Add(new ChunkHeader(offset, fourCC, size, fourCCType, fileHeader));
 
-                    } 
+                    }
+                    else if (fourCCType == FourCC.MSIC || fourCCType == FourCC.VAGM) {
+
+                        var offsetOfHeader = offset + chunkHeaderLength;
+
+                        var chunkCount = BitConverter.ToInt16(bytes, offsetOfHeader);
+                        var chunkIteration = BitConverter.ToInt16(bytes, offsetOfHeader + 2);
+
+                        var musicHeader = new MusicHeader(chunkCount, chunkIteration);
+
+                        offsets.Add(new ChunkHeader(offset, fourCC, size, fourCCType, musicHeader));
+                    }
                     else {
 
                         offsets.Add(new ChunkHeader(offset, fourCC, size, fourCCType));
 
                     }
 
-                } 
+                }
                 else if (fourCC == FourCC.SWVR) {
 
                     var fourCCType = BytesToStringReversed(offset + 16, 4);
@@ -525,7 +692,7 @@ namespace FCopParser {
                     offsets.Add(new ChunkHeader(offset, fourCC, size, fourCCType, CopyOfRange(fileNameOffset, fileNameOffset + 16)));
 
 
-                } 
+                }
                 else {
 
                     offsets.Add(new ChunkHeader(offset, fourCC, size));
@@ -572,6 +739,7 @@ namespace FCopParser {
         int BytesToInt(int offset) {
             return BitConverter.ToInt32(bytes, offset);
         }
+
 
         string BytesToString(int offset, int length) {
             return Encoding.Default.GetString(bytes, offset, length);

@@ -49,52 +49,33 @@ namespace FCopParser {
             // Add 12 to move past the tEXT header
             offset += 12;
 
-            var nextIndex = 1;
-            foreach (var item in tFUNData) {
+            List<byte> GetLine(int offset) {
 
-                item.line1 = rawFile.data.GetRange(offset + item.startingOffset, item.endingOffset - item.startingOffset);
+                var itoffset = offset;
+                var total = new List<byte>();
 
-                if (nextIndex < tFUNData.Count) {
+                while (true) {
 
-                    var nextItem = tFUNData[nextIndex];
+                    total.Add(rawFile.data[itoffset]);
 
-                    item.line2 = rawFile.data.GetRange(offset + item.endingOffset, nextItem.startingOffset - item.endingOffset);
+                    if (rawFile.data[itoffset] == 0) {
+                        break;
+                    }
 
-                } else {
-
-                    item.line2 = rawFile.data.GetRange(offset + item.endingOffset, rawFile.data.Count - (offset + item.endingOffset));
-
+                    itoffset++;
                 }
 
-                nextIndex++;
+                return total;
 
             }
 
-            //foreach (var item in tFUNData) {
-            //    Console.WriteLine(
-            //        item.number1.ToString() + " " +
-            //        item.number2.ToString() + " " +
-            //        item.number3.ToString() + " " +
-            //        item.startingOffset.ToString() + " " +
-            //        item.endingOffset.ToString()
-            //    );
-            //}
 
-            //foreach (var item in tEXTData) {
+            foreach (var item in tFUNData) {
 
-            //    foreach (var b in item.line1) {
-            //        Console.Write(b.ToString() + " ");
-            //    }
+                item.line1 = new FCopScript(item.line1Offset, GetLine(offset + item.line1Offset));
+                item.line2 = new FCopScript(item.line2Offset, GetLine(offset + item.line2Offset));
 
-            //    Console.WriteLine();
-
-            //    foreach (var b in item.line2) {
-            //        Console.Write(b.ToString() + " ");
-            //    }
-
-            //    Console.WriteLine();
-
-            //}
+            }
 
         }
 
@@ -108,24 +89,24 @@ namespace FCopParser {
             total.AddRange(BitConverter.GetBytes(tFUNSize));
             total.AddRange(BitConverter.GetBytes(1));
 
+            var tEXTTotal = new List<byte>();
+
+
             foreach (var item in tFUNData) {
 
                 total.AddRange(BitConverter.GetBytes(item.number1));
                 total.AddRange(BitConverter.GetBytes(item.number2));
                 total.AddRange(BitConverter.GetBytes(item.number3));
-                total.AddRange(BitConverter.GetBytes(item.startingOffset));
-                total.AddRange(BitConverter.GetBytes(item.endingOffset));
+
+                total.AddRange(BitConverter.GetBytes(tEXTTotal.Count));
+                tEXTTotal.AddRange(item.line1.compiledBytes);
+
+                total.AddRange(BitConverter.GetBytes(tEXTTotal.Count));
+                tEXTTotal.AddRange(item.line2.compiledBytes);
+
 
             }
 
-            var tEXTTotal = new List<byte>();
-
-            foreach (var item in tFUNData) {
-
-                tEXTTotal.AddRange(item.line1);
-                tEXTTotal.AddRange(item.line2);
-
-            }
 
             total.AddRange(tEXTFourCC);
             total.AddRange(BitConverter.GetBytes(tEXTTotal.Count + 12));
@@ -170,16 +151,16 @@ namespace FCopParser {
 
     public class CFuntFUNData {
 
-        public int number1, number2, number3, startingOffset, endingOffset;
-        public List<byte> line1 = new();
-        public List<byte> line2 = new();
+        public int number1, number2, number3, line1Offset, line2Offset;
+        public FCopScript line1;
+        public FCopScript line2;
 
-        public CFuntFUNData(int number1, int number2, int number3, int startingOffset, int endingOffset) {
+        public CFuntFUNData(int number1, int number2, int number3, int line1Offset, int line2Offset) {
             this.number1 = number1;
             this.number2 = number2;
             this.number3 = number3;
-            this.startingOffset = startingOffset;
-            this.endingOffset = endingOffset;
+            this.line1Offset = line1Offset;
+            this.line2Offset = line2Offset;
         }
     }
 

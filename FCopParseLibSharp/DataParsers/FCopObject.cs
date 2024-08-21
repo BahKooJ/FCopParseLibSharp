@@ -99,7 +99,7 @@ namespace FCopParser {
                     Utils.BytesToShort(bytes.ToArray(), offset + 2),
                     new List<int>() { bytes[offset + 4], bytes[offset + 5], bytes[offset + 6], bytes[offset + 7] },
                     new List<int>() { bytes[offset + 8], bytes[offset + 9], bytes[offset + 10], bytes[offset + 11] }
-                    ));;
+                    )); ;
 
                 offset += 12;
 

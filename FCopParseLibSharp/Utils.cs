@@ -6,6 +6,7 @@ namespace FCopParser {
     using System.Text;
     class Utils {
 
+
         public static Element[] CopyOfRange<Element>(Element[] array, int start, int end) {
 
             var length = end - start;

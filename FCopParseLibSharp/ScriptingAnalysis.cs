@@ -2,172 +2,22 @@
 using FCopParser;
 using System.Collections;
 
-//void LogActors() {
-
-//    var parser = new IFFParser(File.ReadAllBytes("Mp"));
-
-//    var actors = parser.parsedData.files.Where(file => {
-
-//        return file.dataFourCC == "Cact" || file.dataFourCC == "Csac";
-
-//    });
-
-//    foreach (var file in actors) {
-
-//        var actor = new FCopActor(file);
-
-//        Console.Write(file.dataFourCC + " " + file.dataID + " " + actor.objectType + " ");
-
-//        foreach (var r in actor.rpnsReferences) {
-
-//            Console.Write(r + " ");
-
-//        }
-
-//        Console.WriteLine();
-
-//    }
-
-//}
-
-//void LogCfun() {
-
-//    var parser = new IFFParser(File.ReadAllBytes("Mp"));
-
-
-//    var foo = parser.parsedData.files.First(file => {
-
-//        return file.dataFourCC == "Cfun";
-
-//    });
-
-//    var fun = new FCopFunction(foo);
-
-//}
-
-//void LogRPNS() {
-
-//    var parser = new IFFParser(File.ReadAllBytes("Mp"));
-
-
-//    var foo = parser.parsedData.files.First(file => {
-
-//        return file.dataFourCC == "RPNS";
-
-//    });
-
-//    var rpns = new FCopRPNS(foo);
-
-//    foreach (var code in rpns.code) {
-
-//        foreach (var b in code) {
-//            Console.Write(b + " ");
-//        }
-
-//        Console.WriteLine();
-
-//    }
-
-//}
-
-
-
-//void CompareData() {
-
-//    var parser = new IFFParser(File.ReadAllBytes("Mp"));
-
-//    var actors = parser.parsedData.files.Where(file => {
-
-//        return file.dataFourCC == "Cact" || file.dataFourCC == "Csac";
-
-//    });
-
-//    var rawRPNS = parser.parsedData.files.First(file => {
-
-//        return file.dataFourCC == "RPNS";
-
-//    });
-
-//    var rpns = new FCopRPNS(rawRPNS);
-
-//    var rawCFun = parser.parsedData.files.First(file => {
-
-//        return file.dataFourCC == "Cfun";
-
-//    });
-
-//    var fun = new FCopFunction(rawCFun);
-
-//    foreach (var file in actors) {
-
-//        var actor = new FCopActor(file);
-
-//        Console.Write(file.dataFourCC + " ID: " + file.dataID + " Type: " + actor.objectType + "\n");
-
-
-//        foreach (var r in actor.rpnsReferences) {
-
-//            Console.Write("RPNS Ref: " + r + "\nByte Code: ");
-
-//            foreach (var i in Enumerable.Range(r, rpns.bytes.Count)) {
-
-//                Console.Write(rpns.bytes[i] + " ");
-
-//                if (rpns.bytes[i] == 0) {
-//                    Console.WriteLine();
-//                    break;
-//                }
-
-//            }
-
-//        }
-
-//        Console.Write("Header Code Data: ");
-
-//        foreach (var hcd in actor.headerCodeData) {
-
-//            Console.Write(hcd + " ");
-
-//        }
-
-//        Console.WriteLine();
-
-//        Console.Write("Header Code: ");
-
-//        foreach (var hc in actor.headerCode) {
-
-//            Console.Write(hc + " ");
-
-//        }
-
-//        Console.WriteLine();
-//        Console.WriteLine();
-
-//    }
-
-//}
-
-//var foo = new ScriptAnalysis(new() { (new IFFParser(File.ReadAllBytes("Mp")), "Mp") });
-
-//foo.CompareActorsRPNSRef();
-
-
 
 class ScriptAnalysis {
 
-    public List<IffFilesWithScripts> files = new();
+    public List<FCopLevel> levels = new();
 
-    public ScriptAnalysis(List<(IFFParser file, string name)> files) {
+    public ScriptAnalysis(List<IFFParser> files) {
 
         foreach (var file in files) {
-            this.files.Add(new IffFilesWithScripts(file.file, file.name));
+            this.levels.Add(new FCopLevel(file));
         }
 
     }
 
-    public ScriptAnalysis((IFFParser file, string name) file) {
-        
-        files.Add(new IffFilesWithScripts(file.file, file.name));
+    public ScriptAnalysis(IFFParser file) {
+
+        levels.Add(new FCopLevel(file));
 
     }
 
@@ -190,9 +40,9 @@ class ScriptAnalysis {
         public List<FCopActor> actors;
         public int sharedSameType;
 
-        public IffFilesWithScripts fileOrigin;
+        public FCopLevel fileOrigin;
 
-        public ActorsByRPNSRef(RPNSRef rpnsRefs, List<FCopActor> actors, IffFilesWithScripts fileOrigin) {
+        public ActorsByRPNSRef(RPNSRef rpnsRefs, List<FCopActor> actors, FCopLevel fileOrigin) {
 
             this.rpnsRefs = rpnsRefs;
             this.actors = actors;
@@ -203,9 +53,9 @@ class ScriptAnalysis {
             foreach (var actor in actors) {
 
                 if (type == -1) {
-                    type = actor.objectType;
+                    type = actor.actorType;
                 }
-                else if (type != actor.objectType) {
+                else if (type != actor.actorType) {
                     shareSameType = false;
                 }
 
@@ -223,23 +73,57 @@ class ScriptAnalysis {
 
     }
 
-    public void LogRPNSCode() {
+    public void LogCfunCode() {
 
         var message = "";
 
-        foreach (var file in files) {
+        foreach (var file in levels) {
 
-            message += file.name + ": \n\n";
+            message += file.ToString() + ": \n\n";
 
-            foreach (var line in file.rpns.code) {
+            foreach (var code in file.functions.tFUNData) {
+
+                message += "tFUN Struct: " + code.number1 + " " + code.number2 + " " + code.number3 + " " + code.line1Offset + " " + code.line2Offset + "\n";
+
+                message += "Line 1: \n";
                 message += "```\n";
-
-                foreach (var b in line) {
-                    message += b + " ";
+                foreach (var b in code.line1.compiledBytes) {
+                    message += b.ToString() + " ";
                 }
+                message += "\n```\n";
 
-                message += "\n```\n\n";
+                message += "Line 2: \n";
+                message += "```\n";
+                foreach (var b in code.line2.compiledBytes) {
+                    message += b.ToString() + " ";
+                }
+                message += "\n```\n";
 
+                message += "\n";
+            }
+
+        }
+
+        Console.WriteLine(message);
+
+
+    }
+
+    public void AnalyseCfunCode() {
+
+        var message = "";
+
+        foreach (var file in levels) {
+
+            message += file.ToString() + ": \n\n";
+
+            foreach (var code in file.functions.tFUNData) {
+
+                message += "Line1: " + AnalyseCode(code.line1.compiledBytes);
+                message += "\n";
+                message += "Line2: " + AnalyseCode(code.line2.compiledBytes);
+
+                message += "\n";
             }
 
         }
@@ -248,125 +132,6 @@ class ScriptAnalysis {
 
     }
 
-    public void LogCfunCode() {
-
-        var total = "";
-
-        foreach (var file in files) {
-
-            total += file.name + ": \n\n";
-
-            foreach (var code in file.fun.tFUNData) {
-
-                total += code.number1 + " " + code.number2 + " " + code.number3 + " " + code.startingOffset + " " + code.endingOffset + "\n";
-                total += "Line1: ";
-                foreach (var b in code.line1) {
-                    total += b + " ";
-                }
-                total += "\nLine2: ";
-                foreach (var b in code.line2) {
-                    total += b + " ";
-                }
-                total += "\n\n";
-
-            }
-
-        }
-
-        Console.WriteLine(total);
-
-
-    }
-
-    public void LogCfunCodeWithBits() {
-
-        void Reverse(BitArray array) {
-            int length = array.Length;
-            int mid = (length / 2);
-
-            for (int i = 0; i < mid; i++) {
-                bool bit = array[i];
-                array[i] = array[length - i - 1];
-                array[length - i - 1] = bit;
-            }
-        }
-
-        var total = "";
-
-        foreach (var file in files) {
-
-            total += file.name + ": \n\n";
-
-            foreach (var code in file.fun.tFUNData) {
-
-                total += code.number1 + " " + code.number2 + " " + code.number3 + " " + code.startingOffset + " " + code.endingOffset + "\n";
-                total += "Line1: ";
-                foreach (var b in code.line1) {
-                    total += b + " ";
-                }
-                total += "\n";
-                foreach (var b in code.line1) {
-
-                    var bits = new BitArray(new byte[] { b });
-                    Reverse(bits);
-
-                    foreach (bool bit in bits) {
-                        total += bit ? 1 : 0;
-                    }
-
-                    total += " ";
-
-                }
-                total += "\n";
-                foreach (var b in code.line1) {
-
-                    var bits = new BitArray(new byte[] { b });
-                    Reverse(bits);
-
-                    foreach (bool bit in bits) {
-                        total += bit ? 1 : 0;
-                    }
-
-                }
-
-
-                total += "\nLine2: ";
-                foreach (var b in code.line2) {
-                    total += b + " ";
-                }
-                total += "\n";
-                foreach (var b in code.line2) {
-
-                    var bits = new BitArray(new byte[] { b });
-                    Reverse(bits);
-
-                    foreach (bool bit in bits) {
-                        total += bit ? 1 : 0;
-                    }
-
-                    total += " ";
-
-                }
-                total += "\n";
-                foreach (var b in code.line2) {
-
-                    var bits = new BitArray(new byte[] { b });
-                    Reverse(bits);
-
-                    foreach (bool bit in bits) {
-                        total += bit ? 1 : 0;
-                    }
-
-                }
-                total += "\n\n";
-
-            }
-
-        }
-
-        Console.WriteLine(total);
-
-    }
 
     public void CompareActorsRPNSRef() {
 
@@ -417,7 +182,7 @@ class ScriptAnalysis {
 
             foreach (var actor in actRef.actors) {
 
-                message += "(Type: " + actor.objectType + ", ID: " + actor.id + ") ";
+                message += "(Type: " + actor.actorType + ", ID: " + actor.id + ") ";
 
             }
 
@@ -438,9 +203,9 @@ class ScriptAnalysis {
 
         var message = "";
 
-        foreach (var file in files) {
+        foreach (var file in levels) {
 
-            message += file.name + ": \n\n";
+            message += file.ToString() + ": \n\n";
 
             var actRefs = CreateActorsRPNSRefFromFile(file);
 
@@ -460,7 +225,77 @@ class ScriptAnalysis {
 
     }
 
-    string AnalyseCode(List<byte> code) {
+    class Expression {
+
+        public Operator operationType;
+        public List<Expression> nestedExpressions = new();
+        public object value = null;
+
+        public Expression(List<Expression> nestedExpressions, Operator operationType) {
+            this.nestedExpressions = nestedExpressions;
+            this.operationType = operationType;
+        }
+
+        public Expression(object value, Operator operationType) {
+            this.value = value;
+            this.operationType = operationType;
+        }
+
+    }
+
+    class Statement {
+
+        public Instruction instruction;
+        public List<Expression> parametes = new();
+
+        public Statement(Instruction instruction) {
+            this.instruction = instruction;
+        }
+
+    }
+
+    enum Operator {
+
+        Literal = 256,
+        Get16 = 16,
+        Get18 = 18,
+        Get19 = 19,
+        Equal = 33,
+        GreaterThan = 35,
+        GreaterThanOrEqual = 36,
+        LessThan = 37,
+        Subtract = 40,
+        And = 44
+
+    }
+
+    enum Instruction {
+
+        None = 256,
+        End = 0,
+        Jump = 8,
+        Unknown12 = 12,
+        ConditionalJump = 20,
+        Increment = 21,
+        Unknown24 = 24,
+        Decrement = 25,
+        Set = 29,
+        Sound = 30,
+        Unknown31 = 31,
+        Unknown32 = 32,
+        Add = 48,
+        Subtract = 52,
+        Destroy = 56,
+        Unknown57 = 57,
+        Spawn = 60
+
+    }
+
+    List<Operator> doubleExpressionOperators = new() { 
+        Operator.GreaterThan, Operator.LessThan, Operator.And, Operator.Equal, Operator.Subtract, Operator.GreaterThanOrEqual
+    };
+
+    public string AnalyseCode(List<byte> code) {
         var message = "";
 
         var offset = 0;
@@ -469,46 +304,22 @@ class ScriptAnalysis {
 
             while (offset < code.Count) {
 
-                if (code[offset + 1] == 131 && code[offset + 2] == 30) {
-
-                    message += "Sound(" + code[offset] + " " + code[offset + 1] + " " + code[offset + 2] + ") ";
-                    offset += 3;
-                    continue;
-
-                }
-
-                if (code[offset + 1] == 199 && code[offset + 2] == 128 && code[offset + 3] == 60) {
-
-                    message += "Spawn(" + code[offset] + " " + code[offset + 1] + " " + code[offset + 2] + " " + code[offset + 3] + ") ";
-                    offset += 4;
-                    continue;
-
-                }
-
-                if (code[offset + 1] == 24) {
-
-                    message += "Function Call?(" + code[offset] + " " + code[offset + 1] + ") ";
-
-                    offset += 2;
-
-                    continue;
-
-                }
-
-                if (code[offset + 1] == 250 && code[offset + 2] == 129 && code[offset + 3] == 56) {
-
-                    message += "Unknown(" + code[offset] + " " + code[offset + 1] + " " + code[offset + 2] + " " + code[offset + 3] + ") ";
-                    offset += 4;
-                    continue;
-
-                }
-
-                if (code[offset] == 8 && code[offset + 1] == 4) {
-
-                    message += "Else?(" + code[offset] + " " + code[offset + 1] + ") ";
+                if (code[offset] == 8) {
+                    message += "Else(" + code[offset] + ", Size: " + code[offset + 1] + ") ";
                     offset += 2;
                     continue;
+                }
 
+                if (code[offset] == 16) {
+                    message += "Get(" + code[offset] + ") ";
+                    offset++;
+                    continue;
+                }
+
+                if (code[offset] == 20) {
+                    message += "If(" + code[offset] + ", Size: " + code[offset + 1] + ") ";
+                    offset += 2;
+                    continue;
                 }
 
                 if (code[offset] == 21) {
@@ -523,8 +334,14 @@ class ScriptAnalysis {
                     continue;
                 }
 
-                if (code[offset] == 16) {
-                    message += "Get?(" + code[offset] + ") ";
+                if (code[offset] == 33) {
+                    message += "IsEqual(" + code[offset] + ") ";
+                    offset++;
+                    continue;
+                }
+
+                if (code[offset] == 35) {
+                    message += "IsGreaterThan(" + code[offset] + ") ";
                     offset++;
                     continue;
                 }
@@ -535,8 +352,20 @@ class ScriptAnalysis {
                     continue;
                 }
 
-                if (code[offset] == 35) {
-                    message += "IsGreaterThan(" + code[offset] + ") ";
+                if (code[offset] == 48) {
+                    message += "Add(" + code[offset] + ") ";
+                    offset++;
+                    continue;
+                }
+
+                if (code[offset] == 56) {
+                    message += "Destroy?(" + code[offset] + ") ";
+                    offset++;
+                    continue;
+                }
+
+                if (code[offset] == 60) {
+                    message += "Spawn?(" + code[offset] + ") ";
                     offset++;
                     continue;
                 }
@@ -570,76 +399,241 @@ class ScriptAnalysis {
 
     }
 
-    public void AnalyseRPNSCode() {
+    public string AnalyseCodeButBetter(List<byte> code) {
 
-        var message = "";
+        List<Expression> floatingExpressions = new();
+        List<Statement> statements = new List<Statement>();
 
-        foreach (var file in files) {
+        var i = 0;
+        while (i < code.Count) {
 
-            message += file.name + ": \n\n";
+            var b = code[i];
 
-            foreach (var code in file.rpns.code) {
+            if (Enum.IsDefined(typeof(Operator), (Int32)b)) {
 
-                message += AnalyseCode(code);
+                var opCase = (Operator)b;
+
+                if (opCase == Operator.Get16 || opCase == Operator.Get18 || opCase == Operator.Get19) {
+
+                    var lastExpression = floatingExpressions.Last();
+                    floatingExpressions.RemoveAt(floatingExpressions.Count - 1);
+                    floatingExpressions.Add(new Expression(new List<Expression>() { lastExpression }, opCase));
+
+                }
+                else if (doubleExpressionOperators.Contains(opCase)) {
+
+                    var leftAndRight = new List<Expression> {
+                            floatingExpressions[^2],
+                            floatingExpressions.Last()
+                        };
+
+                    floatingExpressions.RemoveAt(floatingExpressions.Count - 1);
+                    floatingExpressions.RemoveAt(floatingExpressions.Count - 1);
+
+                    floatingExpressions.Add(new Expression(leftAndRight, opCase));
+
+                }
+
+            }
+            else if (Enum.IsDefined(typeof(Instruction), (Int32)b)) {
+
+                var instuctionCase = (Instruction)b;
+
+                if (instuctionCase == Instruction.ConditionalJump) {
+
+                    var state = new Statement(instuctionCase);
+
+                    state.parametes.Add(floatingExpressions.Last());
+
+                    floatingExpressions.RemoveAt(floatingExpressions.Count - 1);
+
+                    state.parametes.Add(new Expression(code[i + 1], Operator.Literal));
+
+                    statements.Add(state);
+
+                    i += 2;
+                    continue;
+
+                }
+                else if (instuctionCase == Instruction.Jump) {
+
+                    var state = new Statement(instuctionCase);
+
+                    state.parametes.Add(new Expression(code[i + 1], Operator.Literal));
+
+                    statements.Add(state);
+
+                    i += 2;
+                    continue;
+
+                }
+                else if (instuctionCase == Instruction.Spawn || 
+                    instuctionCase == Instruction.Destroy ||
+                    instuctionCase == Instruction.Unknown57) {
+
+                    var state = new Statement(instuctionCase);
+
+                    state.parametes.Add(floatingExpressions[^3]);
+                    state.parametes.Add(floatingExpressions[^2]);
+                    state.parametes.Add(floatingExpressions[^1]);
+
+                    statements.Add(state);
+
+                    floatingExpressions.RemoveRange(floatingExpressions.Count - 3, 3);
+
+                }
+                else if (instuctionCase == Instruction.Sound ||
+                    instuctionCase == Instruction.Unknown31 ||
+                    instuctionCase == Instruction.Unknown32 ||
+                    instuctionCase == Instruction.Add ||
+                    instuctionCase == Instruction.Subtract ||
+                    instuctionCase == Instruction.Set) {
+
+                    var state = new Statement(instuctionCase);
+
+                    state.parametes.Add(floatingExpressions[^2]);
+                    state.parametes.Add(floatingExpressions[^1]);
+
+                    statements.Add(state);
+
+                    floatingExpressions.RemoveRange(floatingExpressions.Count - 2, 2);
+
+                }
+                else if (
+                    instuctionCase == Instruction.Increment || 
+                    instuctionCase == Instruction.Decrement ||
+                    instuctionCase == Instruction.Unknown24 ||
+                    instuctionCase == Instruction.Unknown12) {
+
+                    var state = new Statement(instuctionCase);
+
+                    state.parametes.Add(floatingExpressions[^1]);
+                    floatingExpressions.RemoveAt(floatingExpressions.Count - 1);
+
+                    statements.Add(state);
+
+                }
+                else if (instuctionCase == Instruction.End) {
+
+                    var state = new Statement(instuctionCase);
+
+                    statements.Add(state);
+
+                }
+
+            }
+            else {
+
+                if (b > 127) {
+                    floatingExpressions.Add(new Expression(b - 128, Operator.Literal));
+                }
+                else if (b == 2) {
+                    floatingExpressions.Add(new Expression(128 + (code[i + 1]), Operator.Literal));
+                    i += 2;
+                    continue;
+                }
+                else {
+                    throw new Exception("Unknown byte: " + b.ToString());
+                }
 
             }
 
+            i++;
         }
 
-        Console.WriteLine(message);
+        if (floatingExpressions.Count > 0) {
+            Console.WriteLine("floatingExpressions still has count");
 
-    }
+            var state = new Statement(Instruction.None);
 
-    public void AnalyseCfunCode() {
+            state.parametes.Add(floatingExpressions[^1]);
+            floatingExpressions.RemoveAt(floatingExpressions.Count - 1);
 
-        var message = "";
+            statements.Add(state);
 
-        foreach (var file in files) {
+        }
 
-            message += file.name + ": \n\n";
+        string LogExpression(Expression expression) {
 
-            foreach (var code in file.fun.tFUNData) {
+            var total = "";
 
-                message += AnalyseCode(code.line1);
-                message += AnalyseCode(code.line2);
+            total += expression.operationType.ToString() + "(";
 
-                message += "\n";
+            if (expression.value != null) {
+                total += expression.value.ToString();
+                total += ")";
+            }
+            else {
+
+                if (doubleExpressionOperators.Contains(expression.operationType)) {
+                    total += LogExpression(expression.nestedExpressions[0]) + ", ";
+                    total += LogExpression(expression.nestedExpressions[1]) + ")";
+
+                } else {
+
+                    foreach (var nestedExpression in expression.nestedExpressions) {
+                        total += LogExpression(nestedExpression);
+                    }
+                    total += ")";
+                }
+
+
+
             }
 
+            return total;
+
         }
-
-        Console.WriteLine(message);
-
-    }
-
-    public void CompareActor14() {
 
         var message = "";
 
-        foreach (var file in files) {
+        foreach (var statement in statements) {
 
-            message += file.name + ": \n";
+            message += statement.instruction.ToString() + "(";
+
+            foreach (var par in statement.parametes) {
+                message += LogExpression(par) + ", ";
+            }
+
+            if (statement.parametes.Count > 0) {
+
+                message = message.Remove(message.Length - 1);
+                message = message.Remove(message.Length - 1);
+
+            }
+
+            message += ")\n";
+
+        }
+
+        return message;
+
+    }
+
+    public void CompareActors(int id) {
+
+        var message = "";
+
+        foreach (var file in levels) {
+
+            message += file.ToString() + ": \n";
 
             var actors = file.actors.Where(actor => {
 
-                return actor.objectType == 14;
+                return actor.actorType == id;
 
             });
 
             foreach (var actor in actors) {
 
-                message += Utils.BytesToShort(actor.rawFile.data.ToArray(), 28) + " ";
-                message += Utils.BytesToShort(actor.rawFile.data.ToArray(), 30) + " ";
-                message += Utils.BytesToShort(actor.rawFile.data.ToArray(), 32) + " ";
-                message += Utils.BytesToShort(actor.rawFile.data.ToArray(), 34) + " ";
-                message += Utils.BytesToShort(actor.rawFile.data.ToArray(), 36) + " ";
-                message += Utils.BytesToShort(actor.rawFile.data.ToArray(), 38) + " ";
-                message += Utils.BytesToShort(actor.rawFile.data.ToArray(), 40) + " ";
-                message += Utils.BytesToShort(actor.rawFile.data.ToArray(), 42) + " ";
-                message += Utils.BytesToShort(actor.rawFile.data.ToArray(), 44) + " ";
-                message += Utils.BytesToShort(actor.rawFile.data.ToArray(), 46) + " ";
-                message += Utils.BytesToShort(actor.rawFile.data.ToArray(), 48) + " ";
-                message += Utils.BytesToShort(actor.rawFile.data.ToArray(), 50) + " ";
+                var propertyCount = (Utils.BytesToInt(actor.rawFile.data.ToArray(), 4) - 28) / 2;
+
+                var offset = 28;
+
+                foreach (var i in Enumerable.Range(0, propertyCount)) {
+                    message += Utils.BytesToShort(actor.rawFile.data.ToArray(), offset) + " ";
+                    offset += 2;
+                }
 
                 message += "\n";
 
@@ -652,7 +646,7 @@ class ScriptAnalysis {
     }
 
 
-    public Dictionary<int, List<ActorsByRPNSRef>> CreateActorsRPNSRefFromFile(IffFilesWithScripts mFile) {
+    public Dictionary<int, List<ActorsByRPNSRef>> CreateActorsRPNSRefFromFile(FCopLevel mFile) {
 
         var total = new Dictionary<int, List<ActorsByRPNSRef>>();
 
@@ -690,56 +684,5 @@ class ScriptAnalysis {
 
     }
 
-
-    public class IffFilesWithScripts {
-
-        public string name;
-
-        public List<FCopActor> actors = new();
-        public FCopRPNS rpns;
-        public FCopFunction fun;
-        public IFFParser file;
-
-        public IffFilesWithScripts(IFFParser file, string name) {
-
-            this.name = name;
-
-            var actors = file.parsedData.files.Where(file => {
-
-                return file.dataFourCC == "Cact" || file.dataFourCC == "Csac";
-
-            });
-
-            foreach (var a in actors) {
-
-                this.actors.Add(new FCopActor(a));
-
-            }
-
-            var rawRPNS = file.parsedData.files.First(file => {
-
-                return file.dataFourCC == "RPNS";
-
-            });
-
-            rpns = new FCopRPNS(rawRPNS);
-
-            try {
-                var rawCFun = file.parsedData.files.First(file => {
-
-                    return file.dataFourCC == "Cfun";
-
-                });
-
-                fun = new FCopFunction(rawCFun);
-            } catch (Exception e) {
-                fun = null;
-            }
-
-            this.file = file;
-
-        }
-
-    }
 
 }
