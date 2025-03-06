@@ -66,6 +66,10 @@ namespace FCopParser {
         public FCopLevelSectionParser(IFFDataFile rawFile) {
             this.rawFile = rawFile;
 
+            if (rawFile == null) {
+                return;
+            }
+
             FindStartChunkOffset();
 
             colorCount = Utils.BytesToShort(rawFile.data.ToArray(), colorCountOffset);
@@ -93,7 +97,7 @@ namespace FCopParser {
 
         }
 
-        public void Compile() {
+        public List<byte> Compile() {
 
             List<byte> compiledFile = new List<byte>();
 
@@ -115,6 +119,8 @@ namespace FCopParser {
 
                 foreach (ThirdSectionBitfield thirdSectionItem in thirdSectionBitfields) {
 
+                    // Well this sucks
+                    // Because the offset to tiles is only 10 bits long the max number of tiles is 1024.
                     var bitFeild = new BitField(16, new List<BitNumber> {
                         new BitNumber(6,thirdSectionItem.number1), new BitNumber(10,thirdSectionItem.number2)
                     });
@@ -232,7 +238,10 @@ namespace FCopParser {
 
             CompileThirdSection();
 
-            compiledFile.AddRange(rawFile.data.GetRange(1484, 4));
+            // I'm not sure what this value is, it's like the tile count?
+            // In anycase changing the value doesn't give a reaction to future cop
+            // so I guess I can ignore it.
+            compiledFile.AddRange(BitConverter.GetBytes(16384));
 
             CompileTiles();
 
@@ -266,10 +275,7 @@ namespace FCopParser {
             CompileAnimatedUVs();
             CompileSLFX();
 
-            rawFile.data = compiledFile;
-            rawFile.modified = true;
-
-
+            return compiledFile;
 
         }
 
@@ -652,6 +658,20 @@ namespace FCopParser {
 
         }
 
+        public LevelCulling() {
+
+            sectionCulling = new ChunkCulling(0, 0);
+
+            foreach (var i in Enumerable.Range(0, chunkCulling8Size)) {
+                chunkCulling8.Add(new ChunkCulling(0, 0));
+            }
+
+            foreach (var i in Enumerable.Range(0, chunkCulling4Size)) {
+                chunkCulling4.Add(new ChunkCulling(0, 0));
+            }
+
+        }
+
         public List<byte> Compile() {
 
             var total = new List<byte>();
@@ -780,7 +800,7 @@ namespace FCopParser {
 
                             minHeight = value;
                         }
-                        if (value > maxHeight) {
+                        if (value > maxHeight) { 
                             maxHeight = value;
                         }
 
@@ -875,7 +895,7 @@ namespace FCopParser {
 
     public interface TileGraphicsItem { }
 
-    public struct TileGraphics : TileGraphicsItem {
+    public struct TileGraphics: TileGraphicsItem {
 
         public int lightingInfo;
         public int cbmpID;
@@ -913,7 +933,7 @@ namespace FCopParser {
 
     }
 
-    public struct TileGraphicsMetaData : TileGraphicsItem {
+    public struct TileGraphicsMetaData: TileGraphicsItem {
 
         public List<byte> data;
 

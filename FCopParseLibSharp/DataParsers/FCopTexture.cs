@@ -2,13 +2,12 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 
 namespace FCopParser {
 
-    public class FCopTexture {
+    public class FCopTexture : FCopAsset {
 
         public static List<byte> CCBFourCC = new List<byte>() { 32, 66, 67, 67 };
         public static List<byte> LkUpfourCC = new List<byte>() { 112, 85, 107, 76 };
@@ -23,8 +22,6 @@ namespace FCopParser {
 
         public List<ChunkHeader> offsets = new List<ChunkHeader>();
 
-        public IFFDataFile rawFile;
-
         public List<byte> bitmap;
 
         public List<XRGB555> colorPalette;
@@ -34,9 +31,9 @@ namespace FCopParser {
 
         public bool isColorIndexed = false;
 
-        public FCopTexture(IFFDataFile rawFile) {
+        public FCopTexture(IFFDataFile rawFile) : base(rawFile) {
 
-            this.rawFile = rawFile;
+            name = "bitmap " + DataID;
 
             FindChunks(rawFile.data.ToArray());
 
@@ -53,7 +50,7 @@ namespace FCopParser {
 
                 ParseLookUp();
 
-            }
+            } 
             catch {
 
                 var pdat = offsets.First(chunkHeader => {
@@ -90,19 +87,19 @@ namespace FCopParser {
 
             //try {
 
-            if (withTexture) {
+                if (withTexture) {
 
-                var px16 = offsets.First(chunkHeader => {
-                    return chunkHeader.fourCCDeclaration == "PX16";
-                });
+                    var px16 = offsets.First(chunkHeader => {
+                        return chunkHeader.fourCCDeclaration == "PX16";
+                    });
 
-                bitmap = rawFile.data.GetRange(px16.index + 8, px16.chunkSize - 8);
+                    bitmap = rawFile.data.GetRange(px16.index + 8, px16.chunkSize - 8);
 
-            }
+                }
 
-            ParseColorPalette();
+                ParseColorPalette();
 
-            ParseLookUp();
+                ParseLookUp();
 
             //}
             //catch {
@@ -341,7 +338,7 @@ namespace FCopParser {
         public void ImportColorPaletteData(byte[] bytes) {
 
             var cpOffsets = new List<ChunkHeader>();
-
+            
             int offset = 0;
 
             while (offset < bytes.Length) {
@@ -475,7 +472,7 @@ namespace FCopParser {
 
         }
 
-        public void Compile() {
+        public IFFDataFile Compile() {
 
             //var counts = CreateColorPalette();
 
@@ -483,7 +480,7 @@ namespace FCopParser {
 
             // Not yet...
             if (isColorIndexed) {
-                return;
+                return null;
             }
 
             var total = new List<byte>();
@@ -520,6 +517,8 @@ namespace FCopParser {
 
             rawFile.data = total;
             rawFile.modified = true;
+
+            return rawFile;
 
         }
 

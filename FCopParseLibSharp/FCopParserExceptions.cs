@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.Serialization;
 
 namespace FCopParser {
 
@@ -31,10 +30,18 @@ namespace FCopParser {
 
     }
 
-    public class ColorArrayMaxExceeded : Exception {
+    public class ColorArrayMaxExceeded : Exception { 
         public ColorArrayMaxExceeded() {
 
+        } 
+    }
+
+    public class MaxTilesExceeded : Exception {
+
+        public MaxTilesExceeded() {
+
         }
+
     }
 
 }

@@ -1,6 +1,4 @@
-﻿
-
-using System.Collections;
+﻿using System.Collections.Generic;
 
 namespace FCopParser {
 
@@ -45,7 +43,7 @@ namespace FCopParser {
 
         }
 
-        public void Compile() {
+        public IFFDataFile Compile() {
 
             var total = new List<byte>();
 
@@ -61,6 +59,23 @@ namespace FCopParser {
             }
 
             rawFile.data = total;
+
+            return rawFile;
+
+        }
+
+        public void ResetKeys() {
+
+            var newOrder = new List<FCopScript>();
+            foreach (var line in code) {
+                newOrder.Add(line.Value);
+            }
+
+            code.Clear();
+
+            foreach (var line in newOrder) {
+                code.Add(line.offset, line);
+            }
 
         }
 

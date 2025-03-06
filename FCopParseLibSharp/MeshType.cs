@@ -21,10 +21,10 @@ namespace FCopParser {
 
 
 
-        public static readonly List<int> bottomRightTriangles = new() { 0, 2, 4, 16, 18, 25, 27, 33, 35, 36, 38, 44, 46, 53, 55 };
-        public static readonly List<int> bottomLeftTriangles = new() { 6, 8, 10, 12, 14, 21, 23, 28, 30, 41, 43, 48, 50, 56, 58 };
+        public static readonly List<int> bottomRightTriangles = new() { 0, 2,  4, 16, 18, 25, 27, 33, 35, 36, 38, 44, 46, 53, 55 };
+        public static readonly List<int> bottomLeftTriangles = new()  { 6, 8, 10, 12, 14, 21, 23, 28, 30, 41, 43, 48, 50, 56, 58 };
 
-        public static readonly List<int> topRightTriangles = new() { 7, 9, 11, 13, 15, 20, 22, 29, 31, 40, 42, 49, 51, 57, 59 };
+        public static readonly List<int> topRightTriangles = new()    { 7, 9, 11, 13, 15, 20, 22, 29, 31, 40, 42, 49, 51, 57, 59 };
 
 
 
@@ -33,7 +33,7 @@ namespace FCopParser {
 
         static public List<TileVertex> VerticiesFromID(int id) {
 
-            return new List<TileVertex>(meshes[id]);
+            return new List<TileVertex> (meshes[id]);
 
         }
 
@@ -72,7 +72,7 @@ namespace FCopParser {
 
             string total = "";
 
-            foreach (int type in Enumerable.Range(0, 111)) {
+            foreach (int type in Enumerable.Range(0,111)) {
 
                 // type: [(heightChannel,vertexPosition)]
 

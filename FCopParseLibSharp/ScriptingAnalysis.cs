@@ -1,23 +1,28 @@
 ﻿
 using FCopParser;
 using System.Collections;
-
+using System.Text;
 
 class ScriptAnalysis {
+
+    public List<string> fileNames = new() {
+        "Mp", "M2C", "ConFt", "HK", "JOKE", "LAX1", "LAX2", "M1A1", "M3A",
+        "M3B", "M4A1", "OV", "OVMP", "Slim", "Un"
+    };
 
     public List<FCopLevel> levels = new();
 
     public ScriptAnalysis(List<IFFParser> files) {
 
         foreach (var file in files) {
-            this.levels.Add(new FCopLevel(file));
+            this.levels.Add(new FCopLevel(file.parsedData));
         }
 
     }
 
     public ScriptAnalysis(IFFParser file) {
 
-        levels.Add(new FCopLevel(file));
+        levels.Add(new FCopLevel(file.parsedData));
 
     }
 
@@ -53,9 +58,9 @@ class ScriptAnalysis {
             foreach (var actor in actors) {
 
                 if (type == -1) {
-                    type = actor.actorType;
+                    type = (int)actor.behaviorType;
                 }
-                else if (type != actor.actorType) {
+                else if (type != (int)actor.behaviorType) {
                     shareSameType = false;
                 }
 
@@ -73,7 +78,7 @@ class ScriptAnalysis {
 
     }
 
-    public void LogCfunCode() {
+    public void LogCshd() {
 
         var message = "";
 
@@ -81,35 +86,312 @@ class ScriptAnalysis {
 
             message += file.ToString() + ": \n\n";
 
-            foreach (var code in file.functions.tFUNData) {
+            var bytes = file.fileManager.GetFile("Cshd", 1).data;
 
-                message += "tFUN Struct: " + code.number1 + " " + code.number2 + " " + code.number3 + " " + code.line1Offset + " " + code.line2Offset + "\n";
+            var i = 0;
+            foreach (var b in bytes) {
+                message += b + " ";
+                i++;
 
-                message += "Line 1: \n";
-                message += "```\n";
-                foreach (var b in code.line1.compiledBytes) {
-                    message += b.ToString() + " ";
+                if (i == 12) {
+                    message += "\n";
+                    i = 0;
                 }
-                message += "\n```\n";
 
-                message += "Line 2: \n";
-                message += "```\n";
-                foreach (var b in code.line2.compiledBytes) {
-                    message += b.ToString() + " ";
+            }
+            message += "\n\n";
+
+        }
+
+        Console.WriteLine(message);
+    
+    }
+
+    public void LogCdcs() {
+
+        var message = "";
+
+        foreach (var file in levels) {
+
+            message += file.ToString() + ": \n\n";
+
+            var files = file.fileManager.GetFiles("Cdcs");
+
+            if (files.Count == 0) {
+                message += "No Cdcs\n\n";
+                continue;
+            }
+
+            var bytes = files[0].data;
+
+            message += files[0].dataID + " ";
+
+            var i = 0;
+            foreach (var b in bytes) {
+                message += b + " ";
+                i++;
+
+                //if (i == 12) {
+                //    message += "\n";
+                //    i = 0;
+                //}
+
+            }
+            message += "\n\n";
+
+        }
+
+        Console.WriteLine(message);
+
+    }
+
+    public void LogCctr() {
+
+        var message = "";
+
+        foreach (var file in levels) {
+
+            message += file.ToString() + ": \n\n";
+
+            var files = file.fileManager.GetFiles("Cctr");
+
+            if (files.Count == 0) {
+                message += "No Cctr\n\n";
+                continue;
+            }
+            else if (files.Count > 1) {
+                Console.WriteLine("more than one ctr");
+            }
+
+            var bytes = files[0].data;
+
+            var i = 0;
+            foreach (var b in bytes) {
+                message += b + " ";
+                i++;
+
+                //if (i == 12) {
+                //    message += "\n";
+                //    i = 0;
+                //}
+
+            }
+            message += "\n\n";
+
+        }
+
+        Console.WriteLine(message);
+
+    }
+
+    static public void LogCtos(byte[] iffFileBytes, byte[] ctosBytes) {
+
+        var message = "";
+
+        var startI = BitConverter.ToInt32(iffFileBytes, 20);
+
+        var i = 16;
+        while (i < ctosBytes.Length) {
+
+            var offset = BitConverter.ToInt32(ctosBytes, i);
+
+            message += iffFileBytes[startI + offset] + "\n";
+
+            i += 12;
+        }
+
+        Console.WriteLine(message);
+
+    }
+
+    public void LogAllActorTypes() {
+
+        var total = new HashSet<int>();
+
+        foreach (var file in levels) {
+
+            foreach (var actor in file.sceneActors.actors) {
+                total.Add((int)actor.behaviorType);
+            }
+
+        }
+
+        foreach (var i in total) {
+
+
+            Console.WriteLine(i);
+        }
+
+    }
+
+    public void LogActorsAndSize() {
+
+        var total = new HashSet<string>();
+
+        foreach (var file in levels) {
+
+            foreach (var actor in file.sceneActors.actors) {
+
+                total.Add((int)actor.behaviorType + " " + actor.rawFile.data.Count);
+
+            }
+
+        }
+
+        foreach (var i in total) {
+
+
+            Console.WriteLine(i);
+        }
+
+    }
+
+    public void LogActorsAndBlocks() {
+
+        var total = new HashSet<string>();
+
+        foreach (var file in levels) {
+
+            foreach (var actor in file.sceneActors.actors) {
+
+                var propertyCount = (Utils.BytesToInt(actor.rawFile.data.ToArray(), 4) - 28) / 2;
+
+
+                total.Add((int)actor.behaviorType + " " + propertyCount);
+
+            }
+
+        }
+
+        foreach (var i in total) {
+
+            Console.WriteLine(i);
+
+        }
+
+    }
+
+    public void LogUniqueActorRefs() {
+
+        var total = new HashSet<string>();
+
+        foreach (var file in levels) {
+
+            foreach (var actor in file.sceneActors.actors) {
+
+                foreach (var r in actor.resourceReferences) {
+                    total.Add(r.fourCC);
+
                 }
-                message += "\n```\n";
 
-                message += "\n";
+            }
+
+        }
+
+        foreach (var i in total) {
+
+
+            Console.WriteLine(i);
+        }
+
+    }
+
+    public void LogAllActorRefs() {
+
+        var message = "";
+
+
+        foreach (var file in levels) {
+
+            message += file.ToString() + ": \n";
+
+            foreach (var actor in file.sceneActors.actors) {
+
+                message += (int)actor.behaviorType + ":\n";
+
+                foreach (var r in actor.resourceReferences) {
+                    message += r.fourCC + " " + r.id + "\n";
+                }
+
             }
 
         }
 
         Console.WriteLine(message);
 
+    }
+
+    public void LogSomethingIDK() {
+
+        var total = new HashSet<string>();
+
+        foreach (var file in levels) {
+
+            foreach (var actor in file.sceneActors.actors) {
+
+                if (actor.behavior is FCopBehavior11 e) {
+
+                    total.Add(e.rotation.value.compiledRotation.ToString());
+
+                }
+
+
+            }
+
+        }
+
+        foreach (var i in total) {
+
+            Console.WriteLine(i);
+
+        }
 
     }
 
-    public void AnalyseCfunCode() {
+    public void LogCobjChunk(string fourCC) {
+
+        var total = new StringBuilder();
+
+        foreach (var file in levels) {
+
+            total.Append(file.ToString() + ": \n\n");
+
+            foreach (var obj in file.objects) {
+
+                var headers = obj.offsets.Where(offset => offset.fourCCDeclaration == fourCC).ToList();
+
+                if (headers.Count == 0) {
+                    total.Append("no chunk \n");
+                    continue;
+                }
+
+                total.Append("Count: " + headers.Count + "\n");
+
+                foreach (var header in headers) {
+
+                    var bytes = obj.rawFile.data.GetRange(header.index, header.chunkSize);
+
+                    foreach (var b in bytes) {
+                        total.Append(b.ToString("X2") + " ");
+                    }
+
+                    total.Append("\n");
+
+                }
+
+
+
+            }
+
+            total.Append("\n\n");
+
+        }
+
+        Console.WriteLine(total.ToString());
+
+    }
+
+    public void LogTopHeaderCshd() {
 
         var message = "";
 
@@ -117,527 +399,290 @@ class ScriptAnalysis {
 
             message += file.ToString() + ": \n\n";
 
-            foreach (var code in file.functions.tFUNData) {
+            var bytes = file.fileManager.GetFile("Cshd", 1).data;
 
-                message += "Line1: " + AnalyseCode(code.line1.compiledBytes);
-                message += "\n";
-                message += "Line2: " + AnalyseCode(code.line2.compiledBytes);
+            var i = 2;
+            foreach (var b in bytes) {
 
-                message += "\n";
-            }
-
-        }
-
-        Console.WriteLine(message);
-
-    }
-
-
-    public void CompareActorsRPNSRef() {
-
-        string LogActorRPNSGroup(ActorsByRPNSRef actRef) {
-
-            var message = "";
-
-            message += "RPNS Ref " + actRef.rpnsRefs.ref1 + ": ";
-
-            foreach (var i in Enumerable.Range(actRef.rpnsRefs.ref1, actRef.fileOrigin.rpns.bytes.Count)) {
-
-                message += actRef.fileOrigin.rpns.bytes[i] + " ";
-
-                if (actRef.fileOrigin.rpns.bytes[i] == 0) {
-                    message += "\n";
-                    break;
-                }
-
-            }
-
-            message += "RPNS Ref " + actRef.rpnsRefs.ref2 + ": ";
-
-            foreach (var i in Enumerable.Range(actRef.rpnsRefs.ref2, actRef.fileOrigin.rpns.bytes.Count)) {
-
-                message += actRef.fileOrigin.rpns.bytes[i] + " ";
-
-                if (actRef.fileOrigin.rpns.bytes[i] == 0) {
-                    message += "\n";
-                    break;
-                }
-
-            }
-
-            message += "RPNS Ref " + actRef.rpnsRefs.ref3 + ": ";
-
-            foreach (var i in Enumerable.Range(actRef.rpnsRefs.ref3, actRef.fileOrigin.rpns.bytes.Count)) {
-
-                message += actRef.fileOrigin.rpns.bytes[i] + " ";
-
-                if (actRef.fileOrigin.rpns.bytes[i] == 0) {
-                    message += "\n";
-                    break;
-                }
-
-            }
-
-            message += "Actors With RPNS Refs: \n";
-
-            foreach (var actor in actRef.actors) {
-
-                message += "(Type: " + actor.actorType + ", ID: " + actor.id + ") ";
-
-            }
-
-            message += "\nActors Shared Type: ";
-
-            if (actRef.sharedSameType != -1) {
-                message += actRef.sharedSameType;
-            }
-            else {
-                message += "Assorted";
-            }
-
-            message += "\n";
-
-            return message;
-
-        }
-
-        var message = "";
-
-        foreach (var file in levels) {
-
-            message += file.ToString() + ": \n\n";
-
-            var actRefs = CreateActorsRPNSRefFromFile(file);
-
-            foreach (var groupedActRef in actRefs) {
-
-                foreach (var actRef in groupedActRef.Value) {
-                    message += LogActorRPNSGroup(actRef);
-
-                    message += "\n";
-                }
-
-            }
-
-        }
-
-        Console.Write(message);
-
-    }
-
-    class Expression {
-
-        public Operator operationType;
-        public List<Expression> nestedExpressions = new();
-        public object value = null;
-
-        public Expression(List<Expression> nestedExpressions, Operator operationType) {
-            this.nestedExpressions = nestedExpressions;
-            this.operationType = operationType;
-        }
-
-        public Expression(object value, Operator operationType) {
-            this.value = value;
-            this.operationType = operationType;
-        }
-
-    }
-
-    class Statement {
-
-        public Instruction instruction;
-        public List<Expression> parametes = new();
-
-        public Statement(Instruction instruction) {
-            this.instruction = instruction;
-        }
-
-    }
-
-    enum Operator {
-
-        Literal = 256,
-        Get16 = 16,
-        Get18 = 18,
-        Get19 = 19,
-        Equal = 33,
-        GreaterThan = 35,
-        GreaterThanOrEqual = 36,
-        LessThan = 37,
-        Subtract = 40,
-        And = 44
-
-    }
-
-    enum Instruction {
-
-        None = 256,
-        End = 0,
-        Jump = 8,
-        Unknown12 = 12,
-        ConditionalJump = 20,
-        Increment = 21,
-        Unknown24 = 24,
-        Decrement = 25,
-        Set = 29,
-        Sound = 30,
-        Unknown31 = 31,
-        Unknown32 = 32,
-        Add = 48,
-        Subtract = 52,
-        Destroy = 56,
-        Unknown57 = 57,
-        Spawn = 60
-
-    }
-
-    List<Operator> doubleExpressionOperators = new() { 
-        Operator.GreaterThan, Operator.LessThan, Operator.And, Operator.Equal, Operator.Subtract, Operator.GreaterThanOrEqual
-    };
-
-    public string AnalyseCode(List<byte> code) {
-        var message = "";
-
-        var offset = 0;
-
-        try {
-
-            while (offset < code.Count) {
-
-                if (code[offset] == 8) {
-                    message += "Else(" + code[offset] + ", Size: " + code[offset + 1] + ") ";
-                    offset += 2;
-                    continue;
-                }
-
-                if (code[offset] == 16) {
-                    message += "Get(" + code[offset] + ") ";
-                    offset++;
-                    continue;
-                }
-
-                if (code[offset] == 20) {
-                    message += "If(" + code[offset] + ", Size: " + code[offset + 1] + ") ";
-                    offset += 2;
-                    continue;
-                }
-
-                if (code[offset] == 21) {
-                    message += "PlusPlus(" + code[offset] + ") ";
-                    offset++;
-                    continue;
-                }
-
-                if (code[offset] == 25) {
-                    message += "MinusMinus(" + code[offset] + ") ";
-                    offset++;
-                    continue;
-                }
-
-                if (code[offset] == 33) {
-                    message += "IsEqual(" + code[offset] + ") ";
-                    offset++;
-                    continue;
-                }
-
-                if (code[offset] == 35) {
-                    message += "IsGreaterThan(" + code[offset] + ") ";
-                    offset++;
-                    continue;
-                }
-
-                if (code[offset] == 37) {
-                    message += "IsLessThan(" + code[offset] + ") ";
-                    offset++;
-                    continue;
-                }
-
-                if (code[offset] == 48) {
-                    message += "Add(" + code[offset] + ") ";
-                    offset++;
-                    continue;
-                }
-
-                if (code[offset] == 56) {
-                    message += "Destroy?(" + code[offset] + ") ";
-                    offset++;
-                    continue;
-                }
-
-                if (code[offset] == 60) {
-                    message += "Spawn?(" + code[offset] + ") ";
-                    offset++;
-                    continue;
-                }
-
-                message += code[offset] + " ";
-                offset++;
-
-            }
-
-        }
-        catch (Exception) {
-
-            if (offset < code.Count - 1) {
-
-                foreach (var b in code.GetRange(offset, code.Count - offset)) {
+                if (i == 4 || i == 5) {
                     message += b + " ";
                 }
+                i++;
+
+                if (i == 12) {
+                    message += "\n";
+                    i = 0;
+                }
 
             }
-            else if (offset == code.Count - 1) {
-                message += code[offset] + " ";
-            }
-
-
             message += "\n\n";
-            return message;
 
         }
 
-        return message;
+        Console.WriteLine(message);
 
     }
 
-    public string AnalyseCodeButBetter(List<byte> code) {
+    public void GetAllFourCC() {
 
-        List<Expression> floatingExpressions = new();
-        List<Statement> statements = new List<Statement>();
+        var totalFourCCs = new HashSet<string>();
 
-        var i = 0;
-        while (i < code.Count) {
+        foreach (var file in levels) {
 
-            var b = code[i];
+            foreach (var dataFile in file.fileManager.files) {
 
-            if (Enum.IsDefined(typeof(Operator), (Int32)b)) {
-
-                var opCase = (Operator)b;
-
-                if (opCase == Operator.Get16 || opCase == Operator.Get18 || opCase == Operator.Get19) {
-
-                    var lastExpression = floatingExpressions.Last();
-                    floatingExpressions.RemoveAt(floatingExpressions.Count - 1);
-                    floatingExpressions.Add(new Expression(new List<Expression>() { lastExpression }, opCase));
-
-                }
-                else if (doubleExpressionOperators.Contains(opCase)) {
-
-                    var leftAndRight = new List<Expression> {
-                            floatingExpressions[^2],
-                            floatingExpressions.Last()
-                        };
-
-                    floatingExpressions.RemoveAt(floatingExpressions.Count - 1);
-                    floatingExpressions.RemoveAt(floatingExpressions.Count - 1);
-
-                    floatingExpressions.Add(new Expression(leftAndRight, opCase));
-
-                }
+                totalFourCCs.Add(dataFile.dataFourCC);
 
             }
-            else if (Enum.IsDefined(typeof(Instruction), (Int32)b)) {
-
-                var instuctionCase = (Instruction)b;
-
-                if (instuctionCase == Instruction.ConditionalJump) {
-
-                    var state = new Statement(instuctionCase);
-
-                    state.parametes.Add(floatingExpressions.Last());
-
-                    floatingExpressions.RemoveAt(floatingExpressions.Count - 1);
-
-                    state.parametes.Add(new Expression(code[i + 1], Operator.Literal));
-
-                    statements.Add(state);
-
-                    i += 2;
-                    continue;
-
-                }
-                else if (instuctionCase == Instruction.Jump) {
-
-                    var state = new Statement(instuctionCase);
-
-                    state.parametes.Add(new Expression(code[i + 1], Operator.Literal));
-
-                    statements.Add(state);
-
-                    i += 2;
-                    continue;
-
-                }
-                else if (instuctionCase == Instruction.Spawn || 
-                    instuctionCase == Instruction.Destroy ||
-                    instuctionCase == Instruction.Unknown57) {
-
-                    var state = new Statement(instuctionCase);
-
-                    state.parametes.Add(floatingExpressions[^3]);
-                    state.parametes.Add(floatingExpressions[^2]);
-                    state.parametes.Add(floatingExpressions[^1]);
-
-                    statements.Add(state);
-
-                    floatingExpressions.RemoveRange(floatingExpressions.Count - 3, 3);
-
-                }
-                else if (instuctionCase == Instruction.Sound ||
-                    instuctionCase == Instruction.Unknown31 ||
-                    instuctionCase == Instruction.Unknown32 ||
-                    instuctionCase == Instruction.Add ||
-                    instuctionCase == Instruction.Subtract ||
-                    instuctionCase == Instruction.Set) {
-
-                    var state = new Statement(instuctionCase);
-
-                    state.parametes.Add(floatingExpressions[^2]);
-                    state.parametes.Add(floatingExpressions[^1]);
-
-                    statements.Add(state);
-
-                    floatingExpressions.RemoveRange(floatingExpressions.Count - 2, 2);
-
-                }
-                else if (
-                    instuctionCase == Instruction.Increment || 
-                    instuctionCase == Instruction.Decrement ||
-                    instuctionCase == Instruction.Unknown24 ||
-                    instuctionCase == Instruction.Unknown12) {
-
-                    var state = new Statement(instuctionCase);
-
-                    state.parametes.Add(floatingExpressions[^1]);
-                    floatingExpressions.RemoveAt(floatingExpressions.Count - 1);
-
-                    statements.Add(state);
-
-                }
-                else if (instuctionCase == Instruction.End) {
-
-                    var state = new Statement(instuctionCase);
-
-                    statements.Add(state);
-
-                }
-
-            }
-            else {
-
-                if (b > 127) {
-                    floatingExpressions.Add(new Expression(b - 128, Operator.Literal));
-                }
-                else if (b == 2) {
-                    floatingExpressions.Add(new Expression(128 + (code[i + 1]), Operator.Literal));
-                    i += 2;
-                    continue;
-                }
-                else {
-                    throw new Exception("Unknown byte: " + b.ToString());
-                }
-
-            }
-
-            i++;
-        }
-
-        if (floatingExpressions.Count > 0) {
-            Console.WriteLine("floatingExpressions still has count");
-
-            var state = new Statement(Instruction.None);
-
-            state.parametes.Add(floatingExpressions[^1]);
-            floatingExpressions.RemoveAt(floatingExpressions.Count - 1);
-
-            statements.Add(state);
 
         }
 
-        string LogExpression(Expression expression) {
-
-            var total = "";
-
-            total += expression.operationType.ToString() + "(";
-
-            if (expression.value != null) {
-                total += expression.value.ToString();
-                total += ")";
-            }
-            else {
-
-                if (doubleExpressionOperators.Contains(expression.operationType)) {
-                    total += LogExpression(expression.nestedExpressions[0]) + ", ";
-                    total += LogExpression(expression.nestedExpressions[1]) + ")";
-
-                } else {
-
-                    foreach (var nestedExpression in expression.nestedExpressions) {
-                        total += LogExpression(nestedExpression);
-                    }
-                    total += ")";
-                }
-
-
-
-            }
-
-            return total;
-
+        foreach (var s in totalFourCCs) {
+            Console.WriteLine(s);
         }
+
+    }
+
+    public void BitCompareActors(int id, int index) {
 
         var message = "";
+        var uniqueValueCounter = new Dictionary<int, HashSet<bool>>();
 
-        foreach (var statement in statements) {
+        var fileI = 0;
+        foreach (var file in levels) {
 
-            message += statement.instruction.ToString() + "(";
+            message += fileNames[fileI] + ": \n";
 
-            foreach (var par in statement.parametes) {
-                message += LogExpression(par) + ", ";
+            var actors = file.sceneActors.actors.Where(actor => {
+
+                return (int)actor.behaviorType == id;
+
+            });
+
+            foreach (var actor in actors) {
+
+                var offset = index;
+
+                var bits = new BitArray(new byte[] { actor.rawFile.data[offset] });
+
+                var bi = 0;
+                foreach (bool bit in bits) {
+
+                    if (!uniqueValueCounter.ContainsKey(bi)) {
+
+                        uniqueValueCounter[bi] = new();
+                    }
+
+                    uniqueValueCounter[bi].Add(bit);
+
+                    bi++;
+
+                }
+
+
             }
 
-            if (statement.parametes.Count > 0) {
-
-                message = message.Remove(message.Length - 1);
-                message = message.Remove(message.Length - 1);
-
-            }
-
-            message += ")\n";
+            fileI++;
 
         }
 
-        return message;
+        foreach (var pair in uniqueValueCounter) {
+            message += pair.Key + ": ";
+
+            foreach (var value in pair.Value) {
+                message += (value ? "1" : "0") + " ";
+            }
+            message += "\n";
+        }
+
+        Console.WriteLine(message);
 
     }
 
     public void CompareActors(int id) {
 
         var message = "";
+        var uniqueValueCounter = new Dictionary<int, HashSet<byte>>();
 
+        var fileI = 0;
         foreach (var file in levels) {
+            
+            message += fileNames[fileI] + ": \n";
 
-            message += file.ToString() + ": \n";
+            var actors = file.sceneActors.actors.Where(actor => {
 
-            var actors = file.actors.Where(actor => {
-
-                return actor.actorType == id;
+                return (int)actor.behaviorType == id;
 
             });
 
             foreach (var actor in actors) {
 
-                var propertyCount = (Utils.BytesToInt(actor.rawFile.data.ToArray(), 4) - 28) / 2;
-
                 var offset = 28;
 
-                foreach (var i in Enumerable.Range(0, propertyCount)) {
-                    message += Utils.BytesToShort(actor.rawFile.data.ToArray(), offset) + " ";
-                    offset += 2;
+                foreach (var i in Enumerable.Range(offset, Utils.BytesToInt(actor.rawFile.data.ToArray(), 4) - 28)) {
+                    message += actor.rawFile.data[i].ToString("X2") + " ";
+
+                    if (uniqueValueCounter.ContainsKey(i)) {
+                        uniqueValueCounter[i].Add(actor.rawFile.data[i]);
+                    }
+                    else {
+                        uniqueValueCounter[i] = new();
+                        uniqueValueCounter[i].Add(actor.rawFile.data[i]);
+                    }
+
                 }
+
+
 
                 message += "\n";
 
             }
+
+            fileI++;
+
+        }
+
+        foreach (var pair in uniqueValueCounter) {
+            message += pair.Key + ": ";
+
+            var sortedValues = pair.Value.OrderBy(v => v);
+            foreach (var value in sortedValues) {
+
+                message += value.ToString("X2") + " ";
+            }
+            message += "\n";
+        }
+
+        Console.WriteLine(message);
+
+    }
+
+    public void BitCompareActorsRange(List<int> types, int index) {
+
+        var message = "";
+        var uniqueValueCounter = new HashSet<byte>();
+
+        var fileI = 0;
+        foreach (var file in levels) {
+
+            var actors = file.sceneActors.actors.Where(actor => {
+
+                return types.Contains((int)actor.behaviorType);
+
+            });
+
+            foreach (var actor in actors) {
+
+                uniqueValueCounter.Add(actor.rawFile.data[index]);
+
+            }
+
+            fileI++;
+
+        }
+
+        message += index + ": ";
+        var sortedValues = uniqueValueCounter.OrderBy(v => v);
+
+        var bitArrays = new List<BitArray>();
+
+        foreach (var value in sortedValues) {
+
+            message += value.ToString("X2") + " ";
+
+            bitArrays.Add(new BitArray(new byte[] { value }));
+
+        }
+        message += "\n";
+
+        foreach (var i in Enumerable.Range(0, 8)) {
+
+            message += i.ToString() + ": ";
+
+            foreach (var bitArray in bitArrays) {
+
+                message += (bitArray[i] ? "11" : "00") + " ";
+
+            }
+            message += "\n";
+
+        }
+
+
+        Console.WriteLine(message);
+
+    }
+
+    public void CompareActorsRange(List<int> types) {
+
+        var message = "";
+        var uniqueValueCounter = new Dictionary<int, HashSet<byte>>();
+
+        var fileI = 0;
+        foreach (var file in levels) {
+
+            var actors = file.sceneActors.actors.Where(actor => {
+
+                return types.Contains((int)actor.behaviorType);
+
+            });
+
+            foreach (var actor in actors) {
+
+                var offset = 28;
+
+                foreach (var i in Enumerable.Range(offset, Utils.BytesToInt(actor.rawFile.data.ToArray(), 4) - 28)) {
+
+                    if (uniqueValueCounter.ContainsKey(i)) {
+                        uniqueValueCounter[i].Add(actor.rawFile.data[i]);
+                    }
+                    else {
+                        uniqueValueCounter[i] = new();
+                        uniqueValueCounter[i].Add(actor.rawFile.data[i]);
+                    }
+
+                }
+
+            }
+
+            fileI++;
+
+        }
+
+        foreach (var pair in uniqueValueCounter) {
+            message += pair.Key + ": ";
+
+            var sortedValues = pair.Value.OrderBy(v => v);
+            foreach (var value in sortedValues) {
+                
+                message += value.ToString("X2") + " ";
+            }
+            message += "\n";
+        }
+
+        Console.WriteLine(message);
+
+    }
+
+    public void LogAllCobjChunks() {
+
+        var message = "";
+
+        var fileI = 0;
+        foreach (var file in levels) {
+
+            message += fileNames[fileI] + ": \n";
+
+            foreach (var obj in file.objects) {
+
+                foreach (var header in obj.offsets) {
+                    message += header.fourCCDeclaration + " ";
+                }
+                message += "\n";
+
+            }
+
+            fileI++;
 
         }
 
@@ -645,44 +690,56 @@ class ScriptAnalysis {
 
     }
 
+    //public void LogAllCnetNodeData() {
 
-    public Dictionary<int, List<ActorsByRPNSRef>> CreateActorsRPNSRefFromFile(FCopLevel mFile) {
+    //    var message = new StringBuilder();
+    //    var uniqueValueCounter = new Dictionary<int, HashSet<byte>>();
 
-        var total = new Dictionary<int, List<ActorsByRPNSRef>>();
+    //    var fileI = 0;
+    //    foreach (var file in levels) {
 
-        var actorsByRPNSRef = new Dictionary<RPNSRef, List<FCopActor>>();
+    //        message.Append(fileNames[fileI] + ": \n");
 
-        foreach (var actor in mFile.actors) {
+    //        foreach (var cnet in file.navMeshes) {
 
-            var list = actorsByRPNSRef.GetValueOrDefault(new RPNSRef(actor.rpnsReferences[0], actor.rpnsReferences[1], actor.rpnsReferences[2]));
+    //            foreach (var node in cnet.nodes) {
 
-            if (list != null) {
-                list.Add(actor);
-            }
-            else {
-                actorsByRPNSRef[new RPNSRef(actor.rpnsReferences[0], actor.rpnsReferences[1], actor.rpnsReferences[2])] = new List<FCopActor>() { actor };
-            }
+    //                var bi = 0;
+    //                foreach (var b in node.data) {
 
-        }
+    //                    message.Append(b.ToString("X2") + " ");
 
-        foreach (var actorsByRef in actorsByRPNSRef) {
+    //                    if (uniqueValueCounter.ContainsKey(bi)) {
+    //                        uniqueValueCounter[bi].Add(b);
+    //                    }
+    //                    else {
+    //                        uniqueValueCounter[bi] = new();
+    //                    }
 
-            var groupedActors = new ActorsByRPNSRef(actorsByRef.Key, actorsByRef.Value, mFile);
+    //                    bi++;
+    //                }
 
-            var list = total.GetValueOrDefault(groupedActors.sharedSameType);
+    //                message.Append('\n');
 
-            if (list != null) {
-                list.Add(groupedActors);
-            }
-            else {
-                total[groupedActors.sharedSameType] = new List<ActorsByRPNSRef>() { groupedActors };
-            }
+    //            }
 
-        }
+    //        }
 
-        return total;
+    //        fileI++;
 
-    }
+    //    }
 
+    //    foreach (var pair in uniqueValueCounter) {
+    //        message.Append(pair.Key + ": ");
+
+    //        foreach (var value in pair.Value) {
+    //            message.Append(value.ToString("X2") + " ");
+    //        }
+    //        message.Append('\n');
+    //    }
+
+    //    Console.WriteLine(message.ToString());
+
+    //}
 
 }

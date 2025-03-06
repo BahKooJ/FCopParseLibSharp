@@ -1,22 +1,20 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
 namespace FCopParser {
 
-    public class FCopFunction {
+    public class FCopFunctionParser {
 
         public static List<byte> tFUNFourCC = new List<byte>() { 78, 85, 70, 116 };
         public static List<byte> tEXTFourCC = new List<byte>() { 84, 88, 69, 116 };
 
-
-        public List<CFuntFUNData> tFUNData = new();
+        public List<FCopFunction> functions = new();
 
         public IFFDataFile rawFile;
 
-        public FCopFunction(IFFDataFile rawFile) {
+        public FCopFunctionParser(IFFDataFile rawFile) {
 
             this.rawFile = rawFile;
 
@@ -31,11 +29,10 @@ namespace FCopParser {
 
             foreach (var i in Enumerable.Range(0, tFUNDataCount)) {
 
-                tFUNData.Add(
-                    new CFuntFUNData(
+                functions.Add(
+                    new FCopFunction(
                             Utils.BytesToInt(data, offset),
                             Utils.BytesToInt(data, offset + 4),
-                            Utils.BytesToInt(data, offset + 8),
                             Utils.BytesToInt(data, offset + 12),
                             Utils.BytesToInt(data, offset + 16)
 
@@ -70,20 +67,23 @@ namespace FCopParser {
             }
 
 
-            foreach (var item in tFUNData) {
+            foreach (var item in functions) {
 
-                item.line1 = new FCopScript(item.line1Offset, GetLine(offset + item.line1Offset));
-                item.line2 = new FCopScript(item.line2Offset, GetLine(offset + item.line2Offset));
+                item.runCondition = new FCopScript(item.line1Offset, GetLine(offset + item.line1Offset));
+                item.code = new FCopScript(item.line2Offset, GetLine(offset + item.line2Offset));
 
             }
 
         }
 
-        public void Compile() {
+        public IFFDataFile Compile() {
+
+            // TODO: Actually compile
+            return rawFile;
 
             var total = new List<byte>();
 
-            var tFUNSize = (tFUNData.Count * 5 * 4) + 12;
+            var tFUNSize = (functions.Count * 5 * 4) + 12;
 
             total.AddRange(tFUNFourCC);
             total.AddRange(BitConverter.GetBytes(tFUNSize));
@@ -92,17 +92,17 @@ namespace FCopParser {
             var tEXTTotal = new List<byte>();
 
 
-            foreach (var item in tFUNData) {
+            foreach (var item in functions) {
 
-                total.AddRange(BitConverter.GetBytes(item.number1));
-                total.AddRange(BitConverter.GetBytes(item.number2));
-                total.AddRange(BitConverter.GetBytes(item.number3));
-
-                total.AddRange(BitConverter.GetBytes(tEXTTotal.Count));
-                tEXTTotal.AddRange(item.line1.compiledBytes);
+                total.AddRange(BitConverter.GetBytes(item.repeatCount));
+                total.AddRange(BitConverter.GetBytes(item.repeatTimer));
+                total.AddRange(BitConverter.GetBytes(0));
 
                 total.AddRange(BitConverter.GetBytes(tEXTTotal.Count));
-                tEXTTotal.AddRange(item.line2.compiledBytes);
+                tEXTTotal.AddRange(item.runCondition.compiledBytes);
+
+                total.AddRange(BitConverter.GetBytes(tEXTTotal.Count));
+                tEXTTotal.AddRange(item.code.compiledBytes);
 
 
             }
@@ -149,16 +149,15 @@ namespace FCopParser {
 
     }
 
-    public class CFuntFUNData {
+    public class FCopFunction {
 
-        public int number1, number2, number3, line1Offset, line2Offset;
-        public FCopScript line1;
-        public FCopScript line2;
+        public int repeatCount, repeatTimer, line1Offset, line2Offset;
+        public FCopScript runCondition;
+        public FCopScript code;
 
-        public CFuntFUNData(int number1, int number2, int number3, int line1Offset, int line2Offset) {
-            this.number1 = number1;
-            this.number2 = number2;
-            this.number3 = number3;
+        public FCopFunction(int repeatCount, int repeatTimer, int line1Offset, int line2Offset) {
+            this.repeatCount = repeatCount;
+            this.repeatTimer = repeatTimer;
             this.line1Offset = line1Offset;
             this.line2Offset = line2Offset;
         }

@@ -3,50 +3,32 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace FCopParser {
 
-    // =WIP=
+    // Takes everything in IFFFileMananger and converts it to higher parsed data.
+    // Object also manages sections and level layout
     public class FCopLevel {
 
-        public FCopRPNS rpns;
-        public FCopFunction functions;
-
-        public List<List<int>> layout;
+        public int width;
+        public int height;
 
         public List<FCopLevelSection> sections = new();
-
+        public FCopAudioParser audio;
         public List<FCopTexture> textures = new();
-
         public List<FCopNavMesh> navMeshes = new();
-
         public List<FCopObject> objects = new();
-
-        public List<FCopActor> actors = new();
+        public FCopScriptingProject scripting;
+        public FCopSceneActors sceneActors;
 
         public IFFFileManager fileManager;
-        public IFFParser iffFile;
 
-        public FCopLevel(IFFParser iffFile) {
+        public FCopLevel(IFFFileManager fileManager) {
 
-            this.iffFile = iffFile;
-            fileManager = iffFile.parsedData;
+            this.fileManager = fileManager;
 
-            layout = FCopLevelLayoutParser.Parse(fileManager.files.First(file => {
-
-                return file.dataFourCC == "Cptc";
-
-            }));
-
-            var rawCtilFiles = fileManager.files.Where(file => {
-
-                return file.dataFourCC == "Ctil";
-
-            }).ToList();
-
-            foreach (var rawFile in rawCtilFiles) {
-                sections.Add(new FCopLevelSectionParser(rawFile).Parse(this));
-            }
+            InitSectionData();
 
             InitData();
 
@@ -55,122 +37,22 @@ namespace FCopParser {
         public FCopLevel(int width, int height, IFFFileManager fileManager) {
 
             this.fileManager = fileManager;
+            this.width = width + 8;
+            this.height = height + 8;
 
-            layout = new List<List<int>>();
+            // + 8s are there for the out of bounds padding, 4 sections on either side.
+            foreach (var y in Enumerable.Range(0, height + 8)) {
 
+                foreach (var x in Enumerable.Range(0, width + 8)) {
 
-            // TODO: This abomination needs to get cleaned up
-            foreach (int _ in Enumerable.Range(0, 4)) {
-
-                layout.Add(new List<int>());
-
-                layout.Last().AddRange(new List<int>() { 1, 1, 1, 1 });
-
-                foreach (int __ in Enumerable.Range(0, width)) {
-                    layout.Last().Add(1);
-                }
-
-                layout.Last().AddRange(new List<int>() { 1, 1, 1, 1, 0 });
-
-            }
-
-            var id = 2;
-
-            foreach (int _ in Enumerable.Range(0, height)) {
-
-                layout.Add(new List<int>());
-
-                layout.Last().AddRange(new List<int>() { 1, 1, 1, 1 });
-
-                foreach (int i in Enumerable.Range(0, width)) {
-                    layout.Last().Add(id);
-                    id++;
-                }
-
-                layout.Last().AddRange(new List<int>() { 1, 1, 1, 1, 0 });
-
-            }
-
-            foreach (int _ in Enumerable.Range(0, 4)) {
-
-                layout.Add(new List<int>());
-
-                layout.Last().AddRange(new List<int>() { 1, 1, 1, 1 });
-
-                foreach (int __ in Enumerable.Range(0, width)) {
-                    layout.Last().Add(1);
-                }
-
-                layout.Last().AddRange(new List<int>() { 1, 1, 1, 1, 0 });
-
-            }
-
-            layout.Add(new List<int>());
-
-            layout.Last().AddRange(new List<int>() { 0, 0, 0, 0 });
-
-            foreach (int __ in Enumerable.Range(0, width)) {
-                layout.Last().Add(0);
-            }
-
-            layout.Last().AddRange(new List<int>() { 0, 0, 0, 0, 0 });
-
-            var rawCtilFiles = fileManager.files.Where(file => {
-
-                return file.dataFourCC == "Ctil";
-
-            }).ToList();
-
-            var oobSection = new FCopLevelSectionParser(rawCtilFiles[0]).Parse(this);
-
-            oobSection.parser.rawFile = oobSection.parser.rawFile.Clone(1);
-
-            foreach (var h in oobSection.heightMap) {
-                h.SetPoint(19, 1);
-                h.SetPoint(-128, 2);
-                h.SetPoint(-128, 3);
-            }
-
-            foreach (var tColumn in oobSection.tileColumns) {
-
-                tColumn.tiles.Clear();
-
-                tColumn.tiles.Add(new Tile(tColumn, MeshType.VerticiesFromID(68), 0, new() { 57200, 57228, 50060, 50032 }, new TileGraphics(116, 6, 0, 0, 1, 0)));
-
-            }
-
-            sections.Add(oobSection);
-
-            foreach (var row in layout) {
-
-                foreach (var column in row) {
-
-                    if (column == 0 || column == 1) {
-                        continue;
+                    if (x >= 4 && x < width + 4 && y >= 4 && y < height + 4) {
+                        sections.Add(FCopLevelSection.CreateEmpty(-120, -100, -80));
+                    }
+                    else {
+                        sections.Add(FCopLevelSection.CreateEmpty(20, -128, -128));
                     }
 
-                    var newSection = new FCopLevelSectionParser(rawCtilFiles[0]).Parse(this);
-
-                    newSection.parser.rawFile = newSection.parser.rawFile.Clone(column);
-
-                    foreach (var h in newSection.heightMap) {
-                        h.SetPoint(-120, 1);
-                        h.SetPoint(-100, 2);
-                        h.SetPoint(-80, 3);
-                    }
-
-                    foreach (var tColumn in newSection.tileColumns) {
-
-                        tColumn.tiles.Clear();
-
-                        tColumn.tiles.Add(new Tile(tColumn, MeshType.VerticiesFromID(68), 0, new() { 57200, 57228, 50060, 50032 }, new TileGraphics(116, 6, 0, 0, 1, 0)));
-
-                    }
-
-                    sections.Add(newSection);
-
                 }
-
 
             }
 
@@ -178,37 +60,55 @@ namespace FCopParser {
 
         }
 
+        public FCopLevel(byte[] nonCompressedFCopFile) {
+            // Data is inited in this read func
+            ReadNCFCFile(nonCompressedFCopFile.ToList());
+        }
+
+        public FCopLevel(int width, int height, byte[] nonCompressedFCopFile) {
+
+            ReadNCFCFile(nonCompressedFCopFile.ToList());
+
+            ClearLevelData(width, height);
+
+        }
+
         void InitData() {
 
-            rpns = new FCopRPNS(fileManager.files.First(file => {
+            List<IFFDataFile> GetFiles(string fourCC) {
 
-                return file.dataFourCC == "RPNS";
+                return fileManager.files.Where(file => {
 
-            }));
+                    return file.dataFourCC == fourCC;
 
-            functions = new FCopFunction(fileManager.files.First(file => {
+                }).ToList();
 
-                return file.dataFourCC == "Cfun";
+            }
 
-            }));
+            IFFDataFile GetFile(string fourCC) {
 
-            var rawBitmapFiles = fileManager.files.Where(file => {
+                return fileManager.files.First(file => {
 
-                return file.dataFourCC == "Cbmp";
+                    return file.dataFourCC == fourCC;
 
-            }).ToList();
+                });
 
-            var rawNavMeshFiles = fileManager.files.Where(file => {
+            }
 
-                return file.dataFourCC == "Cnet";
+            var rpns = new FCopRPNS(GetFile("RPNS"));
 
-            }).ToList();
+            var cfun = new FCopFunctionParser(GetFile("Cfun"));
 
-            var rawObjectFiles = fileManager.files.Where(file => {
+            scripting = new FCopScriptingProject(rpns, cfun);
 
-                return file.dataFourCC == "Cobj";
+            var rawCwavs = GetFiles("Cwav");
+            var rawCshd = GetFile("Cshd");
 
-            }).ToList();
+            var rawBitmapFiles = GetFiles("Cbmp");
+
+            var rawNavMeshFiles = GetFiles("Cnet");
+
+            var rawObjectFiles = GetFiles("Cobj");
 
             var rawActorFiles = fileManager.files.Where(file => {
 
@@ -228,46 +128,942 @@ namespace FCopParser {
                 objects.Add(new FCopObject(rawFile));
             }
 
+            List<FCopActor> actors = new();
             foreach (var rawFile in rawActorFiles) {
+                actors.Add(new FCopActor(rawFile));
+            }
+            sceneActors = new FCopSceneActors(actors, this);
 
-                actors.Add(new FCopActor(rawFile, rpns));
+            audio = new FCopAudioParser(rawCwavs, rawCshd, fileManager.subFiles, fileManager.music);
+
+        }
+
+        void InitSectionData() {
+
+            var layout = FCopLevelLayoutParser.Parse(fileManager.files.First(file => {
+
+                return file.dataFourCC == "Cptc";
+
+            }));
+
+            width = layout[0].Count - 1;
+            height = layout.Count - 1;
+
+            var rawCtilFiles = fileManager.files.Where(file => {
+
+                return file.dataFourCC == "Ctil";
+
+            }).ToList();
+
+            var parsers = new List<FCopLevelSectionParser>();
+
+            foreach (var rawFile in rawCtilFiles) {
+                parsers.Add(new FCopLevelSectionParser(rawFile));
+            }
+
+            var itx = 0;
+            var ity = 0;
+
+            foreach (var row in layout) {
+
+                foreach (var column in row) {
+
+                    if (column == 0) {
+                        itx++;
+                        continue;
+                    }
+
+                    var grabbedParser = parsers.FirstOrDefault(parser => { return parser.rawFile.dataID == column; });
+
+                    if (grabbedParser == null) {
+                        throw new Exception("Layout has id for a non existant section?");
+                    }
+
+                    sections.Add(new FCopLevelSection(grabbedParser, this));
+
+                    itx++;
+
+                }
+
+                itx = 0;
+                ity++;
+
+            }
+        
+
+
+        }
+
+        public void DeleteAsset(AssetType assetType, int id) {
+
+            switch (assetType) {
+                case AssetType.WavSound:
+                    // TODO
+                    break;
+
+                case AssetType.Object:
+
+                    var obj = objects.First(o => o.DataID == id);
+
+                    objects.Remove(obj);
+
+                    break;
+                case AssetType.NavMesh:
+
+                    var navMesh = navMeshes.First(n => n.DataID == id);
+
+                    navMeshes.Remove(navMesh);
+
+                    break;
+                case AssetType.SndsSound:
+                    // TODO
+                    break;
 
             }
 
         }
 
-        public void Compile() {
+        public void ImportAsset(AssetType assetType, int id, byte[] newData) {
 
-            foreach (var section in sections) {
-                section.Compile();
+            switch (assetType) {
+                case AssetType.WavSound:
+
+                    audio.ImportWave(id, newData);
+
+                    break;
+                case AssetType.Texture:
+
+                    var texture = textures.First(t => t.DataID == id);
+
+                    texture.ImportCbmp(newData);
+
+                    break;
+                case AssetType.Object:
+
+                    var obj = objects.First(o => o.DataID == id);
+
+                    obj.Import(newData);
+
+                    break;
+                case AssetType.SndsSound:
+                    // TODO
+                    break;
+                case AssetType.Music:
+                    
+                    audio.music.rawFile.data = newData.ToList();
+
+                    break;
+                case AssetType.MiniAnimation:
+                    // ...TODO..?
+                    break;
+                case AssetType.Mixed:
+                    // ...TODO..?
+                    break;
             }
 
+        }
+
+        public FCopAsset AddAsset(AssetType assetType, byte[] newData) {
+
+            switch (assetType) {
+                case AssetType.WavSound:
+
+                    return audio.AddWave(newData, scripting.emptyOffset);
+
+                case AssetType.Object:
+
+                    var maxID = objects.Max(o => o.DataID);
+
+                    var rawFile = new IFFDataFile(2, newData.ToList(), "Cobj", maxID + 1, scripting.emptyOffset);
+
+                    var obj = new FCopObject(rawFile);
+
+                    objects.Add(obj);
+
+                    return obj;
+
+                case AssetType.SndsSound:
+                    return null;
+
+
+            }
+
+            return null;
+
+        }
+
+        public void AddAsset(AssetType assetType, FCopAsset asset) {
+
+            switch (assetType) {
+                case AssetType.WavSound:
+                    break;
+
+                case AssetType.Object:
+
+                    objects.Add((FCopObject)asset);
+
+                    break;
+
+                case AssetType.SndsSound:
+                    break;
+
+            }
+
+        }
+
+        public IFFDataFile CreateEmptyAssetFile(AssetType assetType) {
+
+            int maxID;
+            IFFDataFile rawFile;
+
+            switch (assetType) {
+                case AssetType.WavSound:
+                    return null;
+
+                case AssetType.Object:
+
+                    maxID = objects.Max(o => o.DataID);
+
+                    rawFile = new IFFDataFile(2, new(), "Cobj", maxID + 1, scripting.emptyOffset);
+
+                    return rawFile;
+
+                case AssetType.NavMesh:
+
+                    maxID = navMeshes.Max(n => n.DataID);
+
+                    rawFile = new IFFDataFile(2, new(), "Cnet", maxID + 1, scripting.emptyOffset);
+
+                    return rawFile;
+
+                    return null;
+                case AssetType.SndsSound:
+                    return null;
+
+            }
+
+            return null;
+
+        }
+
+        public void ClearLevelData(int width, int height) {
+
+            sections.Clear();
+
+            this.width = width + 8;
+            this.height = height + 8;
+
+            // + 8s are there for the out of bounds padding, 4 sections on either side.
+            foreach (var y in Enumerable.Range(0, height + 8)) {
+
+                foreach (var x in Enumerable.Range(0, width + 8)) {
+
+                    if (x >= 4 && x < width + 4 && y >= 4 && y < height + 4) {
+                        sections.Add(FCopLevelSection.CreateEmpty(-120, -100, -80));
+                    }
+                    else {
+                        sections.Add(FCopLevelSection.CreateEmpty(20, -128, -128));
+                    }
+
+                }
+
+            }
+
+        }
+
+        List<string> dataAccountedFor = new List<string>() { "RPNS", "Cshd", "Cwav", "Ctos", "Cptc", "Ctil", "Cfun", "Cnet", "Cbmp", "Cobj", "Cact", "Csac", "Cctr" };
+
+        void UpdateRPNSOffsets() {
+
+            foreach (var rawFile in fileManager.files) {
+
+                var preCompileRefs = rawFile.rpnsReferences;
+
+                rawFile.rpnsReferences = new();
+
+                // Remember that the actual compiled offset is stored on the script object
+                foreach (var rpnsRef in preCompileRefs) {
+                    if (rpnsRef == -1) {
+                        rawFile.rpnsReferences.Add(-1);
+                    }
+                    else {
+                        rawFile.rpnsReferences.Add(scripting.rpns.code[rpnsRef].offset);
+                    }
+
+                }
+
+            }
+
+        }
+
+        public IFFFileManager Compile() {
+
+            IFFFileManager newFileManager = new();
+
+            newFileManager.files.AddRange(scripting.Compile());
+
+            UpdateRPNSOffsets();
+
+            newFileManager.files.Add(audio.CompileSoundHeader());
+
+            foreach (var wav in audio.soundEffects) {
+                newFileManager.files.Add(wav.rawFile);
+            }
+
+            newFileManager.files.Add(audio.CreateCtos(scripting.emptyOffset));
+
             foreach (var navMesh in navMeshes) {
-                navMesh.Compile();
+                newFileManager.files.Add(navMesh.Compile());
             }
 
             foreach (var texture in textures) {
-                texture.Compile();
+                newFileManager.files.Add(texture.Compile());
             }
 
-            rpns.Compile();
-            functions.Compile();
-
-            foreach (var actor in actors) {
-                actor.Compile();
+            foreach (var obj in objects) {
+                newFileManager.files.Add(obj.Compile());
             }
 
-            FCopLevelLayoutParser.Compile(layout, fileManager.files.First(file => {
+            newFileManager.files.AddRange(sceneActors.Compile());
 
-                return file.dataFourCC == "Cptc";
+            List<List<int>> layout = new() { new() };
 
-            }));
+            Dictionary<int, FCopLevelSection> groupedSections = new();
+
+            var row = 0;
+            var id = 1;
+            foreach (var section in sections) {
+
+                if (groupedSections.Count == 0) {
+                    groupedSections[id] = section;
+                    layout[row].Add(id);
+                    id++;
+                    
+                }
+                else {
+
+                    var foundGroup = false;
+                    foreach (var group in groupedSections) {
+
+                        if (section.Compare(group.Value)) {
+                            layout[row].Add(group.Key);
+                            foundGroup = true;
+                            break;
+                        }
+
+                    }
+
+                    if (!foundGroup) {
+                        groupedSections[id] = section;
+                        layout[row].Add(id);
+                        id++;
+                    }
+
+                }
+
+                if (layout[row].Count == width) {
+                    layout[row].Add(0);
+                    row++;
+                    layout.Add(new());
+                }
+
+            }
+
+            foreach (var i in Enumerable.Range(0, width + 1)) {
+                layout[row].Add(0);
+            }
+
+            var createdCptcRawFile = new IFFDataFile(2, new(), "Cptc", 1, scripting.emptyOffset);
+            FCopLevelLayoutParser.Compile(layout, createdCptcRawFile);
+
+            newFileManager.files.Add(createdCptcRawFile);
+
+            foreach (var group in groupedSections) {
+                var bytes = group.Value.Compile().Compile();
+                var rawFile = new IFFDataFile(2, bytes, "Ctil", group.Key, scripting.emptyOffset);
+                newFileManager.files.Add(rawFile);
+            }
+
+            scripting.ResetIDAndOffsets();
+
+            var floatingFiles = fileManager.files.Where(file => !dataAccountedFor.Contains(file.dataFourCC));
+
+            newFileManager.files.AddRange(floatingFiles);
+
+            // Cctr
+            // I'm not really sure what ctr does, however, all the data is the exact same (other than GlblData) throughout the mission files.
+            // So I guess I don't really need to care, I'll just throw this in here.
+            newFileManager.files.Add(new IFFDataFile(1, 
+                new() { 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2B, 0x01, 0x64, 0x1B, 0x38, 0x01, 0x2B, 0x6F, 0xE6 }, 
+                "Cctr", 1, scripting.emptyOffset));
+
+            // SWVRs
+            newFileManager.subFiles = audio.CompileStreams();
+
+            newFileManager.music = audio.CompileMusic();
+
+            newFileManager.Sort();
+
+            fileManager = newFileManager;
+
+            return newFileManager;
+
+        }
+
+        // Ctos and Cctr is not saved into the file because it contains no useful data and is boilerplate for Future Cop.
+        // Both will be made when the level compiles.
+        public List<byte> CompileToNCFCFile() {
+
+            var total = new List<byte>();
+
+            List<byte> CreateHeader(IFFDataFile file, string eightCC, string name, int dataSize) {
+
+                var totalHeader = new List<byte>();
+                var header = new List<byte>();
+
+                header.AddRange(BitConverter.GetBytes(file.startNumber));
+                header.AddRange(BitConverter.GetBytes(file.dataID));
+                header.AddRange(BitConverter.GetBytes(file.rpnsReferences[0]));
+                header.AddRange(BitConverter.GetBytes(file.rpnsReferences[1]));
+                header.AddRange(BitConverter.GetBytes(file.rpnsReferences[2]));
+                header.AddRange(BitConverter.GetBytes(file.headerCodeData[0]));
+                header.AddRange(BitConverter.GetBytes(file.headerCodeData[1]));
+                header.AddRange(BitConverter.GetBytes(file.headerCode.Count));
+                header.AddRange(file.headerCode);
+                header.AddRange(BitConverter.GetBytes(name.Count()));
+                header.AddRange(Encoding.ASCII.GetBytes(name));
+
+                totalHeader.AddRange(Encoding.ASCII.GetBytes(eightCC));
+                totalHeader.AddRange(BitConverter.GetBytes(header.Count + 12 + dataSize));
+                totalHeader.AddRange(header);
+
+                return totalHeader;
+
+            }
+
+            void CreateHeaderWithFile(IFFDataFile file, string eightCC, string name) {
+
+                total.AddRange(CreateHeader(file, eightCC, name, file.data.Count));
+                total.AddRange(file.data);
+
+            }
+
+            // TODO: Function and script files
+            var scriptingFiles = scripting.Compile();
+            foreach (var file in scriptingFiles) {
+
+                CreateHeaderWithFile(file, "FCop" + file.dataFourCC, "");
+
+            }
+
+            UpdateRPNSOffsets();
+
+            CreateHeaderWithFile(audio.CompileSoundHeader(), "FCopCshd", "");
+
+            foreach (var wav in audio.soundEffects) {
+                CreateHeaderWithFile(wav.rawFile, "FCopCwav", wav.name);
+            }
+
+
+
+            foreach (var navMesh in navMeshes) {
+                CreateHeaderWithFile(navMesh.Compile(), "FCopCnet", navMesh.name);
+            }
+
+            foreach (var texture in textures) {
+                CreateHeaderWithFile(texture.Compile(), "FCopCbmp", texture.name);
+            }
+
+            foreach (var obj in objects) {
+                CreateHeaderWithFile(obj.Compile(), "FCopCobj", obj.name);
+            }
+
+            foreach (var section in sections) {
+
+                var sectionData = new List<byte>();
+
+                sectionData.AddRange(BitConverter.GetBytes(width));
+                sectionData.AddRange(BitConverter.GetBytes(height));
+
+                sectionData.AddRange(BitConverter.GetBytes(section.heightMap.Count));
+
+                foreach (var height in section.heightMap) {
+
+                    sectionData.Add((byte)height.GetTruePoint(1));
+                    sectionData.Add((byte)height.GetTruePoint(2));
+                    sectionData.Add((byte)height.GetTruePoint(3));
+
+                }
+
+                sectionData.AddRange(BitConverter.GetBytes(section.tileColumns.Count));
+
+                foreach (var tileColumn in section.tileColumns) {
+                    sectionData.AddRange(BitConverter.GetBytes(tileColumn.tiles.Count));
+
+                    foreach (var tile in tileColumn.tiles) {
+
+                        var meshType = MeshType.IDFromVerticies(tile.verticies);
+
+                        if (meshType == null) {
+                            throw new MeshIDException();
+                        }
+
+                        sectionData.AddRange(BitConverter.GetBytes((int)meshType));
+                        sectionData.AddRange(BitConverter.GetBytes(tile.culling));
+                        sectionData.AddRange(BitConverter.GetBytes(tile.effectIndex));
+                        sectionData.AddRange(BitConverter.GetBytes(tile.uvs.Count));
+
+                        foreach (var uv in tile.uvs) {
+                            sectionData.AddRange(BitConverter.GetBytes(uv));
+                        }
+
+                        sectionData.AddRange(BitConverter.GetBytes(tile.texturePalette));
+                        sectionData.AddRange(BitConverter.GetBytes(tile.isSemiTransparent ? 1 : 0));
+                        sectionData.AddRange(BitConverter.GetBytes(tile.isVectorAnimated ? 1 : 0));
+
+                        //var newShader = tile.shaders.VerifyCorrectShader();
+
+                        //if (newShader != null) {
+
+                        //    tile.shaders = tile.shaders.VerifyCorrectShader();
+
+                        //}
+
+                        sectionData.AddRange(BitConverter.GetBytes((int)tile.shaders.type));
+                        sectionData.AddRange(BitConverter.GetBytes(tile.shaders.isQuad ? 1 : 0));
+
+                        switch (tile.shaders.type) {
+                            case VertexColorType.MonoChrome:
+                                var monoShader = (MonoChromeShader)tile.shaders;
+
+                                sectionData.AddRange(BitConverter.GetBytes((int)monoShader.value));
+
+                                break;
+                            case VertexColorType.DynamicMonoChrome:
+
+                                var dynamicMonoShader = (DynamicMonoChromeShader)tile.shaders;
+
+                                foreach (var value in dynamicMonoShader.values) {
+                                    sectionData.AddRange(BitConverter.GetBytes(value));
+                                }
+
+                                break;
+                            case VertexColorType.Color:
+
+                                var colorShader = (ColorShader)tile.shaders;
+
+                                sectionData.AddRange(BitConverter.GetBytes(colorShader.values.Count()));
+
+                                foreach (var value in colorShader.values) {
+                                    sectionData.AddRange(BitConverter.GetBytes(value.ToUShort()));
+                                }
+
+                                break;
+                            case VertexColorType.ColorAnimated:
+                                break;
+                        }
+
+                        sectionData.AddRange(BitConverter.GetBytes(tile.animationSpeed));
+                        sectionData.AddRange(BitConverter.GetBytes(tile.animatedUVs.Count));
+
+                        foreach (var uv in tile.animatedUVs) {
+                            sectionData.AddRange(BitConverter.GetBytes(uv));
+                        }
+
+
+                    }
+
+                }
+
+                sectionData.AddRange(BitConverter.GetBytes(section.animationVector.x));
+                sectionData.AddRange(BitConverter.GetBytes(section.animationVector.y));
+                sectionData.AddRange(section.tileEffects);
+
+                if (section.slfxData != null) {
+                    sectionData.AddRange(BitConverter.GetBytes(section.slfxData.Count));
+                    sectionData.AddRange(section.slfxData);
+                }
+                else {
+                    sectionData.AddRange(BitConverter.GetBytes(0));
+
+                }
+
+                total.AddRange(
+                    CreateHeader(new IFFDataFile(2, new(), "Ctil", 0, scripting.emptyOffset),
+                    "SECTION ", "", sectionData.Count));
+                total.AddRange(sectionData);
+
+            }
+
+            sceneActors.Compile();
+
+            foreach (var actor in sceneActors.actors) {
+
+                CreateHeaderWithFile(actor.rawFile, "FCop" + actor.rawFile.dataFourCC, actor.name);
+
+            }
+
+            #region Actor Groups
+            var actorGroupData = new List<byte>();
+
+            foreach (var group in sceneActors.positionalGroupedActors) {
+
+                actorGroupData.AddRange(BitConverter.GetBytes(group.name.Count()));
+                actorGroupData.AddRange(Encoding.ASCII.GetBytes(group.name));
+                actorGroupData.AddRange(BitConverter.GetBytes(group.nestedActors.Count));
+
+                foreach (var nestAct in group.nestedActors) {
+                    actorGroupData.AddRange(BitConverter.GetBytes(nestAct.DataID));
+                }
+
+            }
+
+            total.AddRange(Encoding.ASCII.GetBytes("ACTORGRP"));
+            total.AddRange(BitConverter.GetBytes(actorGroupData.Count + 16));
+            total.AddRange(BitConverter.GetBytes(sceneActors.positionalGroupedActors.Count));
+            total.AddRange(actorGroupData);
+            #endregion
+
+            #region Everything Else
+            foreach (var file in fileManager.files) {
+
+                if (dataAccountedFor.Contains(file.dataFourCC)) {
+                    continue;
+                }
+
+                CreateHeaderWithFile(file, "FCop" + file.dataFourCC, "");
+
+            }
+
+            var subFiles = audio.CompileStreams();
+
+            foreach (var subFile in subFiles) {
+
+                var fileData = new List<byte>();
+
+                foreach (var file in subFile.files) {
+                    fileData.AddRange(CreateHeader(file, "FCop" + file.dataFourCC, "", file.data.Count));
+                    fileData.AddRange(file.data);
+                }
+
+                total.AddRange(Encoding.ASCII.GetBytes("SubFile "));
+                total.AddRange(BitConverter.GetBytes(fileData.Count + 32));
+                total.AddRange(BitConverter.GetBytes(subFile.files.Count));
+                total.AddRange(subFile.CompileName());
+                total.AddRange(fileData);
+
+            }
+
+            var musicFile = audio.CompileMusic();
+
+            total.AddRange(Encoding.ASCII.GetBytes("Music   "));
+            total.AddRange(BitConverter.GetBytes(musicFile.data.Count + 28));
+            total.AddRange(musicFile.CompileName());
+            total.AddRange(musicFile.data);
+            #endregion
+
+            scripting.ResetIDAndOffsets();
+
+            return total;
+
+        }
+
+        public void ReadNCFCFile(List<byte> data) {
+
+            var dataArray = data.ToArray();
+
+            var newFileManager = new IFFFileManager();
+
+            // key data
+            List<FCopActor> actors = new();
+            List<FCopNavMesh> navMeshes = new();
+            List<FCopObject> objects = new();
+            List<FCopTexture> textures = new();
+            List<IFFDataFile> rawCwavs = new();
+            IFFDataFile rawCshd = null;
+            List<ActorGroup> actorGroups = new();
+            FCopRPNS rpns = null;
+            FCopFunctionParser funParser = null;
+
+            var i = 0;
+
+            IFFDataFile CreateDataFile(int iBeforeHeader) {
+
+                var eightCC = Encoding.Default.GetString(dataArray, i, 8);
+                i += 8;
+                var totalSize = BitConverter.ToInt32(dataArray, i);
+                i += 4;
+                var startingNumber = BitConverter.ToInt32(dataArray, i);
+                i += 4;
+                var dataID = BitConverter.ToInt32(dataArray, i);
+                i += 4;
+                var rpnsRef1 = BitConverter.ToInt32(dataArray, i);
+                i += 4;
+                var rpnsRef2 = BitConverter.ToInt32(dataArray, i);
+                i += 4;
+                var rpnsRef3 = BitConverter.ToInt32(dataArray, i);
+                i += 4;
+                var headerCodeData1 = BitConverter.ToInt32(dataArray, i);
+                i += 4;
+                var headerCodeData2 = BitConverter.ToInt32(dataArray, i);
+                i += 4;
+                var headerCodeSize = BitConverter.ToInt32(dataArray, i);
+                i += 4;
+                var headerCode = data.GetRange(i, headerCodeSize);
+                i += headerCodeSize;
+                var nameSize = BitConverter.ToInt32(dataArray, i);
+                i += 4;
+                var name = Encoding.Default.GetString(dataArray, i, nameSize);
+                i += nameSize;
+
+                var headeSize = i - iBeforeHeader;
+
+                if (eightCC == "SECTION ") {
+                    sections.Add(new FCopLevelSection(data.GetRange(i, totalSize - headeSize), this));
+                    i += totalSize - headeSize;
+                    return null;
+                }
+                else if (eightCC[..4] == "FCop") {
+                    var file = new IFFDataFile(
+                            startingNumber,
+                            data.GetRange(i, totalSize - headeSize),
+                            eightCC.Substring(4, 4),
+                            dataID,
+                            new() { rpnsRef1, rpnsRef2, rpnsRef3 },
+                            new() { headerCodeData1, headerCodeData2 },
+                            headerCode
+                            );
+
+                    i += totalSize - headeSize;
+
+                    if (eightCC.Substring(4,4) == "Cact" || eightCC.Substring(4, 4) == "Csac") {
+
+                        var actor = new FCopActor(file);
+
+                        if (name != "") {
+                            actor.name = name;
+                        }
+
+                        actors.Add(actor);
+
+                    }
+                    else if (eightCC.Substring(4, 4) == "Cnet") {
+
+                        var navMesh = new FCopNavMesh(file);
+
+                        if (name != "") {
+                            navMesh.name = name;
+                        }
+
+                        navMeshes.Add(navMesh);
+
+                    }
+                    else if (eightCC.Substring(4, 4) == "Cobj") {
+
+                        var obj = new FCopObject(file);
+
+                        if (name != "") {
+                            obj.name = name;
+                        }
+
+                        objects.Add(obj);
+
+                    }
+                    else if (eightCC.Substring(4, 4) == "Cbmp") {
+
+                        var texture = new FCopTexture(file);
+
+                        if (name != "") {
+                            texture.name = name;
+                        }
+
+                        textures.Add(texture);
+
+                    }
+                    else if (eightCC.Substring(4, 4) == "Cwav") {
+                        // TODO: Give name
+                        rawCwavs.Add(file);
+                    }
+                    else if (eightCC.Substring(4, 4) == "Cshd") {
+                        rawCshd = file;
+                    }
+                    else if (eightCC.Substring(4, 4) == "RPNS") {
+                        rpns = new FCopRPNS(file);
+                    }
+                    else if (eightCC.Substring(4, 4) == "Cfun") {
+                        funParser = new FCopFunctionParser(file);
+                    }
+                    
+                    return file;
+
+                }
+                else {
+                    throw new Exception("Encountered unkown file");
+                }
+
+            } 
+
+            while (i < data.Count()) {
+
+                var iBeforeHeader = i;
+
+                // Offset is not moved because it's just to peak what kind of data it is
+                var eightCC = Encoding.Default.GetString(dataArray, i, 8);
+
+                if (eightCC == "SubFile ") {
+
+                    i += 8;
+                    var totalSize = BitConverter.ToInt32(dataArray, i);
+                    i += 4;
+                    var fileCount = BitConverter.ToInt32(dataArray, i);
+                    i += 4;
+                    var name = data.GetRange(i, 16).ToArray();
+                    i += 16;
+
+                    newFileManager.subFiles.Add(new SubFile(name));
+
+                    foreach (var _f in Enumerable.Range(0, fileCount)) {
+
+                        // The index is updated because the subfile header has nothing to do with a data file.
+                        iBeforeHeader = i;
+
+                        var file = CreateDataFile(iBeforeHeader);
+
+                        if (file == null) {
+                            throw new Exception("Specialized data found in subfile");
+                        }
+
+                        newFileManager.subFiles.Last().files.Add(file);
+
+                    }
+
+                }
+                else if (eightCC == "Music   ") {
+
+                    i += 8;
+                    var totalSize = BitConverter.ToInt32(dataArray, i);
+                    i += 4;
+                    var name = data.GetRange(i, 16).ToArray();
+                    i += 16;
+
+                    var headeSize = i - iBeforeHeader;
+
+                    newFileManager.music = new MusicFile(name, data.GetRange(i, totalSize - headeSize));
+
+                    i += totalSize - headeSize;
+                    
+
+                }
+                else if (eightCC == "ACTORGRP") {
+
+                    i += 8;
+                    var totalSize = BitConverter.ToInt32(dataArray, i);
+                    i += 4;
+                    var groupCount = BitConverter.ToInt32(dataArray, i);
+                    i += 4;
+
+                    foreach (var g in Enumerable.Range(0, groupCount)) {
+
+                        var nameSize = BitConverter.ToInt32(dataArray, i);
+                        i += 4;
+                        var name = Encoding.ASCII.GetString(data.GetRange(i, nameSize).ToArray());
+                        i += nameSize;
+                        var actorIDCount = BitConverter.ToInt32(dataArray, i);
+                        i += 4;
+
+                        var groupStruct = new ActorGroup(name, ActorGroupType.Position, new());
+
+                        foreach (var a in Enumerable.Range(0, actorIDCount)) {
+                            var id = BitConverter.ToInt32(dataArray, i);
+                            i += 4;
+                            groupStruct.actorIDs.Add(id);
+                        }
+
+                        actorGroups.Add(groupStruct);
+
+                    }
+
+                }
+                else {
+
+                    var file = CreateDataFile(iBeforeHeader);
+
+                    if (file != null) {
+                        newFileManager.files.Add(file);
+                    }
+
+                }
+
+            }
+
+            fileManager = newFileManager;
+            sceneActors = new FCopSceneActors(actors, this);
+            if (actorGroups.Count != 0) {
+                sceneActors.SetPositionalGroup(actorGroups);
+            }
+            this.navMeshes = navMeshes;
+            this.objects = objects;
+            this.textures = textures;
+
+            scripting = new FCopScriptingProject(rpns, funParser);
+
+            audio = new FCopAudioParser(rawCwavs, rawCshd, fileManager.subFiles, newFileManager.music);
 
         }
 
     }
 
     public class FCopLevelSection {
+
+        public static FCopLevelSection CreateEmpty(int height1, int hieght2, int height3) {
+
+            var emptySection = new FCopLevelSection();
+
+            foreach (var hy in Enumerable.Range(0, 17)) {
+
+                foreach (var hx in Enumerable.Range(0, 17)) {
+                    emptySection.heightMap.Add(new HeightPoints(height1, hieght2, height3));
+                }
+
+            }
+
+            var x = 0;
+            var y = 0;
+            foreach (var i in Enumerable.Range(0, 16 * 16)) {
+
+                var newTiles = new List<Tile>();
+
+                var heights = new List<HeightPoints> {
+                    emptySection.GetHeightPoint(x, y),
+                    emptySection.GetHeightPoint(x + 1, y),
+                    emptySection.GetHeightPoint(x, y + 1),
+                    emptySection.GetHeightPoint(x + 1, y + 1)
+                };
+
+                var column = new TileColumn(x, y, newTiles, heights);
+                newTiles.Add(new Tile(column, 68, 0));
+
+                emptySection.tileColumns.Add(column);
+
+                x++;
+                if (x == 16) {
+                    y++;
+                    x = 0;
+                }
+
+            }
+
+            emptySection.tileEffects = new() { 0, 0, 0, 0 };
+
+            emptySection.animationVector = new AnimationVector(0, 0);
+
+            emptySection.culling = new LevelCulling();
+
+            emptySection.culling.CalculateCulling(emptySection);
+
+            return emptySection;
+
+        }
 
         public FCopLevel parent;
 
@@ -277,20 +1073,19 @@ namespace FCopParser {
 
         public List<HeightPoints> heightMap = new List<HeightPoints>();
         public List<TileColumn> tileColumns = new List<TileColumn>();
+        // This might be unused.
         List<XRGB555> colors = new List<XRGB555>();
         public AnimationVector animationVector;
         public List<byte> tileEffects;
 
         public LevelCulling culling;
-
-        // Until the file can be fully parsed, we need to have the parser
-        public FCopLevelSectionParser parser;
+        public List<byte> slfxData;
 
         public FCopLevelSection(FCopLevelSectionParser parser, FCopLevel parent) {
 
-            this.parser = parser;
             this.colors = parser.colors;
             this.culling = parser.culling;
+            this.slfxData = parser.slfxData;
 
             animationVector = new AnimationVector(parser.animationVector);
             tileEffects = parser.tileEffects;
@@ -340,8 +1135,172 @@ namespace FCopParser {
 
         }
 
-        FCopLevelSection() {
+        public FCopLevelSection(List<byte> ncfcSectionData, FCopLevel level) {
 
+            var ncfcSectionDataArray = ncfcSectionData.ToArray();
+
+            var i = 0;
+
+            var mapWidth = BitConverter.ToInt32(ncfcSectionDataArray, i);
+            i += 4;
+            var mapHeight = BitConverter.ToInt32(ncfcSectionDataArray, i);
+            i += 4;
+            var heightMapCount = BitConverter.ToInt32(ncfcSectionDataArray, i);
+            i += 4;
+
+            if (heightMapCount != 289) {
+                throw new Exception("Incorrect vertex count");
+            }
+
+            var heightMapData = ncfcSectionData.GetRange(i, heightMapCount * 3);
+
+            foreach (var heightI in Enumerable.Range(0, heightMapCount)) {
+                heightMap.Add(new HeightPoints((sbyte)heightMapData[heightI * 3], (sbyte)heightMapData[heightI * 3 + 1], (sbyte)heightMapData[heightI * 3 + 2]));
+            }
+
+            i += heightMapCount * 3;
+
+            var tileColumnsCount = BitConverter.ToInt32(ncfcSectionDataArray, i);
+            i += 4;
+
+            if (tileColumnsCount != 256) {
+                throw new Exception("Incorrect tile column count");
+            }
+
+            var x = 0;
+            var y = 0;
+
+            foreach (var _tc in Enumerable.Range(0, tileColumnsCount)) {
+
+                var heights = new List<HeightPoints> {
+                    GetHeightPoint(x, y),
+                    GetHeightPoint(x + 1, y),
+                    GetHeightPoint(x, y + 1),
+                    GetHeightPoint(x + 1, y + 1)
+                };
+
+                var column = new TileColumn(x, y, new(), heights);
+
+                var tileCount = BitConverter.ToInt32(ncfcSectionDataArray, i);
+                i += 4;
+
+                foreach (var _t in Enumerable.Range(0, tileCount)) {
+
+                    var meshID = BitConverter.ToInt32(ncfcSectionDataArray, i);
+                    i += 4;
+                    var culling = BitConverter.ToInt32(ncfcSectionDataArray, i);
+                    i += 4;
+                    var effectIndex = BitConverter.ToInt32(ncfcSectionDataArray, i);
+                    i += 4;
+                    var uvCount = BitConverter.ToInt32(ncfcSectionDataArray, i);
+                    i += 4;
+                    var uvs = new List<int>();
+                    foreach (var _ in Enumerable.Range(0, uvCount)) {
+                        uvs.Add(BitConverter.ToInt32(ncfcSectionDataArray, i));
+                        i += 4;
+                    }
+                    var texturePalette = BitConverter.ToInt32(ncfcSectionDataArray, i);
+                    i += 4;
+                    var isSemiTransparent = BitConverter.ToInt32(ncfcSectionDataArray, i);
+                    i += 4;
+                    var isVectorAnimation = BitConverter.ToInt32(ncfcSectionDataArray, i);
+                    i += 4;
+                    var shaderType = BitConverter.ToInt32(ncfcSectionDataArray, i);
+                    i += 4;
+                    var isQuad = BitConverter.ToInt32(ncfcSectionDataArray, i);
+                    i += 4;
+
+                    TileShaders shader = null;
+
+                    switch ((VertexColorType)shaderType) {
+                        case VertexColorType.MonoChrome:
+
+                            var monoValue = BitConverter.ToInt32(ncfcSectionDataArray, i);
+                            i += 4;
+
+                            shader = new MonoChromeShader((byte)monoValue, isQuad == 1);
+
+                            break;
+                        case VertexColorType.DynamicMonoChrome:
+
+                            var dynamicMono = new List<int>();
+                            foreach (var _ in Enumerable.Range(0, 4)) {
+                                dynamicMono.Add(BitConverter.ToInt32(ncfcSectionDataArray, i));
+                                i += 4;
+                            }
+
+                            shader = new DynamicMonoChromeShader(dynamicMono, isQuad == 1);
+
+                            break;
+                        case VertexColorType.Color:
+
+                            var colors = new List<XRGB555>();
+                            var colorCount = BitConverter.ToInt32(ncfcSectionDataArray, i);
+                            i += 4;
+
+                            foreach (var _c in Enumerable.Range(0, colorCount)) {
+                                colors.Add(new XRGB555(ncfcSectionData.GetRange(i, 2)));
+                                i += 2;
+                            }
+
+                            shader = new ColorShader(colors.ToArray(), isQuad == 1);
+
+                            break;
+                        case VertexColorType.ColorAnimated:
+                            shader = new AnimatedShader(isQuad == 1);
+                            break;
+                    }
+
+                    var animationSpeed = BitConverter.ToInt32(ncfcSectionDataArray, i);
+                    i += 4;
+                    var animatedUVCount = BitConverter.ToInt32(ncfcSectionDataArray, i);
+                    i += 4;
+
+                    var animatedUVs = new List<int>();
+                    foreach (var _a in Enumerable.Range(0, animatedUVCount)) {
+                        animatedUVs.Add(BitConverter.ToInt32(ncfcSectionDataArray, i));
+                        i += 4;
+                    }
+
+                    var tile = new Tile(column, meshID, culling, effectIndex, uvs, texturePalette, isSemiTransparent == 1, isVectorAnimation == 1, shader, animationSpeed, animatedUVs);
+
+                    column.tiles.Add(tile);
+
+                }
+
+                tileColumns.Add(column);
+
+                x++;
+
+                if (x == tileColumnsWidth) {
+                    y++;
+                    x = 0;
+                }
+
+            }
+
+            animationVector = new AnimationVector(BitConverter.ToInt32(ncfcSectionDataArray, i), BitConverter.ToInt32(ncfcSectionDataArray, i + 4));
+            i += 8;
+
+            tileEffects = ncfcSectionData.GetRange(i, 4);
+            i += 4;
+
+            var slfxDataCount = BitConverter.ToInt32(ncfcSectionDataArray, i);
+            i += 4;
+
+            if (slfxDataCount != 0) {
+                slfxData = ncfcSectionData.GetRange(i, slfxDataCount);
+                i += slfxDataCount;
+            }
+
+            level.width = mapWidth; 
+            level.height = mapHeight;
+            this.parent = level;
+
+        }
+
+        FCopLevelSection() {
+            
         }
 
         public HeightPoints GetHeightPoint(int x, int y) {
@@ -382,9 +1341,13 @@ namespace FCopParser {
 
         // Takes all the higher parsed data and puts them back into their basic data form found in Ctil.
         // This method does all the indexing and compression to allow for FCopLevelParser to convert the data back into binary.
-        public void Compile() {
+        public FCopLevelSectionParser Compile() {
+
+            culling ??= new LevelCulling();
 
             culling.CalculateCulling(this);
+
+            var parser = new FCopLevelSectionParser(null);
 
             List<HeightPoint3> heightPoints = new List<HeightPoint3>();
             List<ThirdSectionBitfield> thirdSectionBitfields = new List<ThirdSectionBitfield>();
@@ -398,7 +1361,8 @@ namespace FCopParser {
             var existingColors = new Dictionary<ushort, (int, XRGB555)>();
             var colorIndex = 0;
 
-            List<Chunk> chunks = new List<Chunk>() { new Chunk(0, 0) };
+            List<Chunk> chunks = new List<Chunk>() { new Chunk(0,0) };
+            List<(TileColumn column, int tileIndex)> columnWithIndex = new();
 
             foreach (var point in heightMap) {
                 heightPoints.Add(point.Compile());
@@ -412,7 +1376,7 @@ namespace FCopParser {
             var y = 0;
             var chunkX = 0;
             var chunkY = 0;
-            foreach (var i in Enumerable.Range(0, 256)) {
+            foreach (var i in Enumerable.Range(0,256)) {
 
                 var offsetX = ((chunks.Count - 1) % 4) * 4;
                 var offsetY = ((chunks.Count - 1) / 4) * 4;
@@ -448,6 +1412,8 @@ namespace FCopParser {
 
             }
 
+            // Compresses all the tiles and adds them to the tile array
+            // Data is tracked for the third bitfield (tile count, tiles index)
             foreach (var chunk in chunks) {
 
                 foreach (var column in chunk.tileColumns) {
@@ -523,7 +1489,7 @@ namespace FCopParser {
 
                                     // If this index isn't overwritten and the tile isn't animated this is a valid index
                                     if (!found && !isTileAnimated) {
-                                        textureIndex = i;
+                                        textureIndex = i; 
                                         break;
                                     }
 
@@ -543,6 +1509,8 @@ namespace FCopParser {
 
                                 tileUVAnimationMetaData.Add(tile.CompileFrameAnimation(animatedTextureCoordinates.Count * 2, textureCoordinates.Count * 2));
                                 animatedTextureCoordinates.AddRange(tile.animatedUVs);
+                                // Re-reverses so it remains in the correct order after compile
+                                tile.ReverseAnimatedFrames();
 
                             }
 
@@ -578,7 +1546,7 @@ namespace FCopParser {
                             throw new ColorArrayMaxExceeded();
                         }
 
-
+                        
 
                         #endregion
 
@@ -611,8 +1579,7 @@ namespace FCopParser {
                                         if (compiledGraphics.Count == 1) {
                                             graphicsIndex = i;
                                             break;
-                                        }
-                                        else {
+                                        } else {
 
                                             var same = true;
                                             var i2 = 0;
@@ -680,8 +1647,7 @@ namespace FCopParser {
                         // Tiles are sorted within a tile column, the order is not completely known but what is know is walls cannot be first
                         if (compiledTile.meshID < 71) {
                             sortedTiles.Insert(0, compiledTile);
-                        }
-                        else {
+                        } else {
                             sortedTiles.Add(compiledTile);
                         }
 
@@ -697,7 +1663,9 @@ namespace FCopParser {
 
                     var lastCTile = sortedTiles.Last();
                     lastCTile.isEndInColumnArray = 1;
-                    sortedTiles[sortedTiles.Count - 1] = lastCTile;
+                    sortedTiles[^1] = lastCTile;
+
+                    columnWithIndex.Add((column, tiles.Count));
 
                     tiles.AddRange(sortedTiles);
 
@@ -705,41 +1673,16 @@ namespace FCopParser {
 
             }
 
-            // Because the tiles are now no longer sorted left to right, it finds the correct index of the tiles for the columns.
-            var previousOffsetFromChunk = new Dictionary<int, int>() { { 0, 0 }, { 1, 0 }, { 2, 0 }, { 3, 0 } };
-            var previousChunkY = 0;
-            foreach (var column in tileColumns) {
+            if (tiles.Count > 1024) {
+                throw new MaxTilesExceeded();
+            }
 
-                var tileOffset = 0;
+            var sortedColumnsWithIndex = columnWithIndex.OrderBy(item => item.column.y).ThenBy(item => item.column.x).ToList();
 
-                var offsetChunkX = column.x / 4;
-                var offsetChunkY = column.y / 4;
+            foreach (var item in sortedColumnsWithIndex) {
 
-                if (previousChunkY != offsetChunkY) {
-
-                    foreach (var i in Enumerable.Range(0, 4)) {
-                        previousOffsetFromChunk[i] = 0;
-                    }
-
-                    previousChunkY = offsetChunkY;
-
-                }
-
-                if (!(offsetChunkX == 0 && offsetChunkY == 0)) {
-                    var previousChunks = chunks.GetRange(0, (offsetChunkY * 4) + offsetChunkX);
-
-                    foreach (var chunk in previousChunks) {
-                        tileOffset += chunk.Count();
-                    }
-
-                }
-
-                var offsetTotal = previousOffsetFromChunk[offsetChunkX] + tileOffset;
-
-                var bitField = new ThirdSectionBitfield(column.tiles.Count, offsetTotal);
+                var bitField = new ThirdSectionBitfield(item.column.tiles.Count, item.tileIndex);
                 thirdSectionBitfields.Add(bitField);
-
-                previousOffsetFromChunk[offsetChunkX] += column.tiles.Count;
 
             }
 
@@ -760,8 +1703,10 @@ namespace FCopParser {
             parser.animatedTextureCoordinates = animatedTextureCoordinates;
 
             parser.animationVector = animationVector.Compile();
+            parser.tileEffects = new List<byte>(tileEffects);
+            parser.slfxData = slfxData;
 
-            parser.Compile();
+            return parser;
 
         }
 
@@ -1148,13 +2093,13 @@ namespace FCopParser {
                     }
 
                     if (topLeft != null) {
-
+                        
                         foreach (var tile in topLeft.tiles) {
 
                             foreach (var vert in tile.verticies) {
 
                                 if (vert.vertexPosition == VertexPosition.BottomRight) {
-                                    usedChannels.Add(vert.heightChannel);
+                                    usedChannels.Add(vert.heightChannel); 
                                 }
 
                             }
@@ -1271,6 +2216,115 @@ namespace FCopParser {
 
             }
 
+            tileEffects = new List<byte>(section.tileEffects);
+            if (section.slfxData != null) {
+                slfxData = new List<byte>(section.slfxData);
+            }
+
+        }
+
+        public void OverwriteHeights(FCopLevelSection section) {
+
+            heightMap.Clear();
+            foreach (var newHeight in section.heightMap) {
+                heightMap.Add(new HeightPoints(newHeight.height1, newHeight.height2, newHeight.height3));
+            }
+
+            var oldTileColumns = new List<TileColumn>(tileColumns);
+
+            tileColumns.Clear();
+            var x = 0;
+            var y = 0;
+            var i = 0;
+            foreach (var newColumn in section.tileColumns) {
+
+                var newTiles = new List<Tile>();
+
+                var heights = new List<HeightPoints>();
+
+                heights.Add(GetHeightPoint(x, y));
+                heights.Add(GetHeightPoint(x + 1, y));
+                heights.Add(GetHeightPoint(x, y + 1));
+                heights.Add(GetHeightPoint(x + 1, y + 1));
+
+                var column = new TileColumn(x, y, newTiles, heights);
+
+                foreach (var newTile in oldTileColumns[i].tiles) {
+                    newTiles.Add(newTile);
+                }
+
+                tileColumns.Add(column);
+
+                x++;
+                if (x == 16) {
+                    y++;
+                    x = 0;
+                }
+                i++;
+
+            }
+
+            colors.Clear();
+
+            animationVector = new AnimationVector(section.animationVector.x, section.animationVector.y);
+
+            foreach (var newColor in section.colors) {
+
+                colors.Add(new XRGB555(newColor.x, newColor.r, newColor.g, newColor.b));
+
+            }
+
+        }
+
+        public void OverwriteTiles(FCopLevelSection section) {
+
+            tileColumns.Clear();
+            var x = 0;
+            var y = 0;
+            foreach (var newColumn in section.tileColumns) {
+
+                var newTiles = new List<Tile>();
+
+                var heights = new List<HeightPoints>();
+
+                heights.Add(GetHeightPoint(x, y));
+                heights.Add(GetHeightPoint(x + 1, y));
+                heights.Add(GetHeightPoint(x, y + 1));
+                heights.Add(GetHeightPoint(x + 1, y + 1));
+
+                var column = new TileColumn(x, y, newTiles, heights);
+
+                foreach (var newTile in newColumn.tiles) {
+                    newTiles.Add(new Tile(newTile, column, section));
+                }
+
+                tileColumns.Add(column);
+
+                x++;
+                if (x == 16) {
+                    y++;
+                    x = 0;
+                }
+
+            }
+
+            colors.Clear();
+
+            animationVector = new AnimationVector(section.animationVector.x, section.animationVector.y);
+
+            foreach (var newColor in section.colors) {
+
+                colors.Add(new XRGB555(newColor.x, newColor.r, newColor.g, newColor.b));
+
+            }
+
+            tileEffects = new List<byte>(section.tileEffects);
+            if (section.slfxData != null) {
+
+                slfxData = new List<byte>(section.slfxData);
+
+            }
+
         }
 
         public FCopLevelSection Clone() {
@@ -1280,6 +2334,60 @@ namespace FCopParser {
             clone.Overwrite(this);
 
             return clone;
+
+        }
+
+        public bool Compare(FCopLevelSection section) {
+
+            var hi = 0;
+            foreach (var height in heightMap) {
+
+                if (!height.Compare(section.heightMap[hi])) {
+                    return false;
+                }
+
+                hi++;
+            }
+
+            var ci = 0;
+            foreach (var column in tileColumns) {
+
+                var otherColumn = section.tileColumns[ci];
+
+                if (column.tiles.Count != otherColumn.tiles.Count) {
+                    return false;
+                }
+
+                // Tiles aren't sorted yet so we need to compare against all.
+                foreach (var tile in column.tiles) {
+
+                    var foundMatching = false;
+                    foreach (var otherTile in otherColumn.tiles) {
+
+                        if (tile.Compare(otherTile)) {
+                            foundMatching = true;
+                        }
+                        
+                    }
+
+                    if (!foundMatching) {
+                        return false;
+                    }
+
+                }
+
+                ci++;
+            }
+
+            if (!animationVector.Compile().SequenceEqual(section.animationVector.Compile())) {
+                return false;
+            }
+
+            if (!tileEffects.SequenceEqual(section.tileEffects)) {
+                return false;
+            }
+
+            return true;
 
         }
 
@@ -1317,7 +2425,7 @@ namespace FCopParser {
 
         public float GetPoint(int channel) {
 
-            switch (channel) {
+            switch(channel) {
                 case 1: return height1;
                 case 2: return height2;
                 case 3: return height3;
@@ -1345,8 +2453,7 @@ namespace FCopParser {
 
                     if (height1 > maxValue) {
                         height1 = maxValue;
-                    }
-                    else if (height1 < minValue) {
+                    } else if (height1 < minValue) {
                         height1 = minValue;
                     }
 
@@ -1358,8 +2465,7 @@ namespace FCopParser {
 
                     if (height2 > maxValue) {
                         height2 = maxValue;
-                    }
-                    else if (height2 < minValue) {
+                    } else if (height2 < minValue) {
                         height2 = minValue;
                     }
 
@@ -1371,15 +2477,14 @@ namespace FCopParser {
 
                     if (height3 > maxValue) {
                         height3 = maxValue;
-                    }
-                    else if (height3 < minValue) {
+                    } else if (height3 < minValue) {
                         height3 = minValue;
                     }
 
                     height3 = (float)Math.Round(height3 * multiplyer) / multiplyer;
 
                     break;
-                default: break;
+                default: break; 
             }
 
         }
@@ -1393,8 +2498,7 @@ namespace FCopParser {
 
                     if (height1 > maxValue) {
                         height1 = maxValue;
-                    }
-                    else if (height1 < minValue) {
+                    } else if (height1 < minValue) {
                         height1 = minValue;
                     }
 
@@ -1405,8 +2509,7 @@ namespace FCopParser {
 
                     if (height2 > maxValue) {
                         height2 = maxValue;
-                    }
-                    else if (height2 < minValue) {
+                    } else if (height2 < minValue) {
                         height2 = minValue;
                     }
 
@@ -1417,8 +2520,7 @@ namespace FCopParser {
 
                     if (height3 > maxValue) {
                         height3 = maxValue;
-                    }
-                    else if (height3 < minValue) {
+                    } else if (height3 < minValue) {
                         height3 = minValue;
                     }
 
@@ -1448,6 +2550,14 @@ namespace FCopParser {
             height1 = heights.height1;
             height2 = heights.height2;
             height3 = heights.height3;
+
+        }
+
+        public bool Compare(HeightPoints height) {
+
+            return this.GetTruePoint(1) == height.GetTruePoint(1) &&
+                    this.GetTruePoint(2) == height.GetTruePoint(2) && 
+                    this.GetTruePoint(3) == height.GetTruePoint(3);
 
         }
 
@@ -1506,6 +2616,10 @@ namespace FCopParser {
         public bool isSemiTransparent;
         public int culling;
         public int effectIndex;
+
+        public bool isQuad {
+            get { return verticies.Count == 4; }
+        }
 
         // Original parsed data from file
         TileGraphics graphics;
@@ -1594,6 +2708,8 @@ namespace FCopParser {
 
                     animatedUVs.AddRange(frameUVs);
 
+                    ReverseAnimatedFrames();
+
                     break;
                 }
 
@@ -1617,7 +2733,7 @@ namespace FCopParser {
 
             verticies = new List<TileVertex>(tile.verticies);
             uvs = new List<int>(tile.uvs);
-            shaders = tile.shaders.Clone();
+            shaders = tile.shaders.Clone(verticies.Count == 4);
             animatedUVs = new List<int>(tile.animatedUVs);
             animationSpeed = tile.animationSpeed;
 
@@ -1674,6 +2790,24 @@ namespace FCopParser {
 
         }
 
+        public Tile(TileColumn column, int meshID, int culling, int effectIndex, 
+            List<int> uvs, int texturePalette, bool isSemiTransparent, bool isVectorAnimated, 
+            TileShaders shaders, int animationSpeed, List<int> animatedUVs) {
+
+            this.column = column;
+            verticies = MeshType.VerticiesFromID(meshID);
+            this.culling = culling;
+            this.effectIndex = effectIndex;
+            this.uvs = new(uvs);
+            this.texturePalette = texturePalette;
+            this.isSemiTransparent = isSemiTransparent;
+            this.isVectorAnimated = isVectorAnimated;
+            this.shaders = shaders;
+            this.animationSpeed = animationSpeed;
+            this.animatedUVs = new(animatedUVs);
+
+        }
+
         public void ReceiveData(Tile tile, bool updateColumn = true) {
 
             if (updateColumn) {
@@ -1684,7 +2818,7 @@ namespace FCopParser {
 
             verticies = new List<TileVertex>(tile.verticies);
             uvs = new List<int>(tile.uvs);
-            shaders = tile.shaders.Clone();
+            shaders = tile.shaders.Clone(verticies.Count == 4);
             animatedUVs = new List<int>(tile.animatedUVs);
             animationSpeed = tile.animationSpeed;
 
@@ -1737,6 +2871,20 @@ namespace FCopParser {
             return animatedUVs.Count > 0;
         }
 
+        public void ReverseAnimatedFrames() {
+
+            var newOrderedFrames = new List<int>();
+
+            var i = GetFrameCount() - 1;
+            foreach (var _ in Enumerable.Range(0, GetFrameCount())) {
+                newOrderedFrames.AddRange(animatedUVs.GetRange(i * 4, 4));
+                i--;
+            }
+
+            animatedUVs = newOrderedFrames;
+
+        }
+
         public void ChangeShader(VertexColorType type) {
 
             switch (type) {
@@ -1781,24 +2929,22 @@ namespace FCopParser {
 
             var isRect = verticies.Count == 4;
 
-            var graphic = new TileGraphics(graphics.lightingInfo,
-                texturePalette,
-                isVectorAnimated ? 1 : 0,
-                isSemiTransparent ? 1 : 0,
-                isRect ? 1 : 0,
-                (int)shaders.type);
+            var potentialNewShaders = shaders.VerifyCorrectShader();
+
+            if (potentialNewShaders != null) {
+                shaders = potentialNewShaders;
+            }
 
             var shaderData = new List<byte>();
 
             if (shaders.type == VertexColorType.Color) {
                 shaderData = ((ColorShader)shaders).ColorCompile(existingColors);
-            }
-            else {
+            } else {
                 shaderData = shaders.Compile();
             }
 
-
             var graphicItems = new List<TileGraphicsItem>();
+            var graphic = new TileGraphics(graphics.lightingInfo, texturePalette, isVectorAnimated ? 1 : 0, isSemiTransparent ? 1 : 0, isRect ? 1 : 0, (int)shaders.type);
 
             // If no shader data just uses the existing data
             if (shaderData.Count == 0) {
@@ -1808,8 +2954,7 @@ namespace FCopParser {
                     graphicItems.Add(metaData);
                 }
 
-            }
-            else {
+            } else {
 
                 graphic.lightingInfo = shaderData.Last();
 
@@ -1818,23 +2963,71 @@ namespace FCopParser {
                 if (shaderData.Count > 1) {
 
                     foreach (var i in Enumerable.Range(0, shaderData.Count / 2)) {
-                        graphicItems.Add(new TileGraphicsMetaData(shaderData.GetRange((i * 2), 2)));
+                        graphicItems.Add(new TileGraphicsMetaData(shaderData.GetRange(i * 2, 2)));
                     }
 
                 }
 
             }
 
-
-
             return graphicItems;
 
         }
 
         public TileUVAnimationMetaData CompileFrameAnimation(int animationOffset, int textureReplaceOffset) {
+            ReverseAnimatedFrames();
             var metaData = new TileUVAnimationMetaData(GetFrameCount(), 9, animationSpeed, animationOffset, textureReplaceOffset);
             uvAnimationData = metaData;
             return metaData;
+        }
+
+        // Data NOT compared:
+        // animationSpeed, culling, isSemiTransparent
+        public bool Compare(Tile tile) {
+
+            var thisID = MeshType.IDFromVerticies(verticies);
+            var otherID = MeshType.IDFromVerticies(tile.verticies);
+
+            if (thisID == null || otherID == null) {
+                throw new MeshIDException();
+            }
+
+            if (thisID != otherID) {
+                return false;
+            }
+
+            if (!this.uvs.SequenceEqual(tile.uvs)) {
+                return false;
+            }
+
+            if (this.shaders.type != tile.shaders.type) {
+                return false;
+            }
+
+            if (this.animatedUVs.Count != tile.animatedUVs.Count) {
+                return false;
+            }
+
+            if (this.animatedUVs.Count != 0) {
+                if (!this.animatedUVs.SequenceEqual(tile.animatedUVs)) {
+                    return false;
+                }
+            }
+
+            if (this.texturePalette != tile.texturePalette) {
+                return false;
+            }
+
+            if (this.isVectorAnimated != tile.isVectorAnimated) {
+                return false;
+            }
+
+            if (this.effectIndex != tile.effectIndex) {
+                return false;
+            }
+
+            return true;
+
         }
 
         #region Transforming
@@ -1947,7 +3140,7 @@ namespace FCopParser {
 
                         break;
                     case VertexColorType.ColorAnimated:
-                        tile.shaders = shaders.Clone();
+                        tile.shaders = shaders.Clone(false);
                         tile.shaders.isQuad = false;
                         break;
                 }
@@ -2165,7 +3358,7 @@ namespace FCopParser {
                 return;
 
             }
-
+            
             FlipUVOrderVertically();
 
         }
@@ -2269,7 +3462,7 @@ namespace FCopParser {
 
                 }
 
-                return TransformResult.Invalid;
+                return TransformResult.Invalid; 
 
             }
 
@@ -3223,7 +4416,11 @@ namespace FCopParser {
 
         public List<byte> Compile();
 
-        public TileShaders Clone();
+        public TileShaders VerifyCorrectShader();
+
+        public TileShaders Clone(bool isQuad);
+
+        public bool Compare(TileShaders shaders);
 
     }
 
@@ -3271,8 +4468,7 @@ namespace FCopParser {
                     fColors, fColors, fColors, fColors
                 };
 
-            }
-            else {
+            } else {
 
                 colors = new float[][] {
                     fColors, fColors, fColors
@@ -3286,9 +4482,26 @@ namespace FCopParser {
             return new List<byte> { value };
         }
 
-        public TileShaders Clone() {
+        public TileShaders VerifyCorrectShader() {
+            return null;
+        }
+
+        public TileShaders Clone(bool isQuad) {
 
             return new MonoChromeShader(value, isQuad);
+
+        }
+
+        public bool Compare(TileShaders shaders) {
+            
+            if (shaders is MonoChromeShader monoShader) {
+
+                return this.value == monoShader.value;
+
+            }
+            else {
+                return false;
+            }
 
         }
 
@@ -3326,6 +4539,16 @@ namespace FCopParser {
 
             };
 
+
+            Apply();
+
+        }
+
+        public DynamicMonoChromeShader(List<int> values, bool isQuad) {
+
+            this.isQuad = isQuad;
+            this.values = values.ToArray();
+            type = VertexColorType.DynamicMonoChrome;
 
             Apply();
 
@@ -3426,9 +4649,47 @@ namespace FCopParser {
 
         }
 
-        public TileShaders Clone() {
+        public TileShaders VerifyCorrectShader() {
+
+            if (!isQuad) {
+                values[3] = 0;
+            }
+
+            var first = values[0];
+
+            if (values.All(value => value == first)) {
+
+                var whitePercentage = first / white;
+
+                var newShader = new MonoChromeShader((byte)MathF.Round(MonoChromeShader.white * whitePercentage), isQuad);
+
+                return newShader;
+
+            }
+            else {
+
+                return null;
+
+            }
+
+        }
+
+        public TileShaders Clone(bool isQuad) {
 
             return new DynamicMonoChromeShader(this.Compile(), isQuad);
+
+        }
+
+        public bool Compare(TileShaders shaders) {
+
+            if (shaders is DynamicMonoChromeShader monoShader) {
+
+                return this.values.SequenceEqual(monoShader.values);
+
+            }
+            else {
+                return false;
+            }
 
         }
 
@@ -3493,11 +4754,11 @@ namespace FCopParser {
             this.isQuad = isQuad;
             type = VertexColorType.Color;
 
-            values = new XRGB555[] {
-                new XRGB555(false, 31, 31, 31),
-                new XRGB555(false, 31, 31, 31),
-                new XRGB555(false, 31, 31, 31),
-                new XRGB555(false, 31, 31, 31)
+            values = new XRGB555[] { 
+                new XRGB555(false, 31, 31, 31), 
+                new XRGB555(false, 31, 31, 31), 
+                new XRGB555(false, 31, 31, 31), 
+                new XRGB555(false, 31, 31, 31) 
             };
 
             Apply();
@@ -3522,14 +4783,17 @@ namespace FCopParser {
                     new XRGB555(false, valueConversion, valueConversion, valueConversion),
                     new XRGB555(false, valueConversion, valueConversion, valueConversion),
                     new XRGB555(false, valueConversion, valueConversion, valueConversion),
-                    new XRGB555(false, valueConversion, valueConversion, valueConversion)
                 };
+
+                if (previousShader.isQuad) {
+                    values = values.Append(new XRGB555(false, valueConversion, valueConversion, valueConversion)).ToArray();
+                }
 
             }
             else if (previousShader.type == VertexColorType.DynamicMonoChrome) {
 
                 // Filler Data
-                values = new XRGB555[] {
+                var valuesList = new List<XRGB555>() {
                     new XRGB555(false, 31, 31, 31),
                     new XRGB555(false, 31, 31, 31),
                     new XRGB555(false, 31, 31, 31),
@@ -3539,7 +4803,7 @@ namespace FCopParser {
                 var dyanmicMonoChrome = (DynamicMonoChromeShader)previousShader;
 
                 var quadMonoPosToColor = new int[] { 3, 1, 0, 2 };
-                var triangleMonoPosToColor = new int[] { 1, 0, 2 };
+                var triangleMonoPosToColor = new int[] { 2, 1, 0 };
 
                 var i = 0;
                 foreach (var value in dyanmicMonoChrome.values) {
@@ -3553,13 +4817,12 @@ namespace FCopParser {
                     }
 
                     if (previousShader.isQuad) {
-                        values[quadMonoPosToColor[i]] = new XRGB555(false, valueConversion, valueConversion, valueConversion);
-                    }
-                    else {
+                        valuesList[quadMonoPosToColor[i]] = new XRGB555(false, valueConversion, valueConversion, valueConversion);
+                    } else {
 
-                        if (i != 3) {
+                        if (i < 3) {
 
-                            values[triangleMonoPosToColor[i]] = new XRGB555(false, valueConversion, valueConversion, valueConversion);
+                            valuesList[triangleMonoPosToColor[i]] = new XRGB555(false, valueConversion, valueConversion, valueConversion);
 
                         }
 
@@ -3569,15 +4832,34 @@ namespace FCopParser {
 
                 }
 
+                if (!previousShader.isQuad) {
+                    valuesList.RemoveAt(valuesList.Count - 1);
+                }
+
+                values = valuesList.ToArray();
+
             }
             else {
 
-                values = new XRGB555[] {
-                    new XRGB555(false, 31, 31, 31),
-                    new XRGB555(false, 31, 31, 31),
-                    new XRGB555(false, 31, 31, 31),
-                    new XRGB555(false, 31, 31, 31)
-                };
+                if (previousShader.isQuad) {
+
+                    values = new XRGB555[] {
+                        new XRGB555(false, 31, 31, 31),
+                        new XRGB555(false, 31, 31, 31),
+                        new XRGB555(false, 31, 31, 31),
+                        new XRGB555(false, 31, 31, 31)
+                    };
+
+                }
+                else {
+
+                    values = new XRGB555[] {
+                        new XRGB555(false, 31, 31, 31),
+                        new XRGB555(false, 31, 31, 31),
+                        new XRGB555(false, 31, 31, 31),
+                    };
+
+                }
 
             }
 
@@ -3607,8 +4889,7 @@ namespace FCopParser {
                 total.Add(values[0].ToColors());
 
 
-            }
-            else {
+            } else {
 
                 total.Add(values[2].ToColors());
                 total.Add(values[0].ToColors());
@@ -3634,15 +4915,115 @@ namespace FCopParser {
 
                 return new() { corner1, corner2, 0, corner3, corner4 };
 
-            }
-            else {
+            } else {
                 return new() { corner1, corner2, corner3 };
             }
 
 
         }
 
-        public TileShaders Clone() {
+        public TileShaders VerifyCorrectShader() {
+
+            if ((isQuad && values.Length != 4) || (!isQuad && values.Length != 3)) {
+
+                if (!isQuad && values.Length != 3) {
+
+                    values = values.Take(values.Length - 1).ToArray();
+
+                }
+                else if (isQuad && values.Length != 4) {
+
+                    values = values.Append(new XRGB555(false, 31, 31, 31)).ToArray();
+
+                }
+                else {
+                    
+                    throw new Exception("Incorrect shader format");
+
+                }
+
+            }
+
+            var first = values[0];
+
+            var sameColor = values.All(color => first.ToUShort() == color.ToUShort());
+
+            if (sameColor) {
+
+                var firstChannel = first.r;
+
+                var isGrey = first.g == firstChannel && first.b == firstChannel;
+
+                if (isGrey) {
+
+                    var whitePercentage = first.r / XRGB555.maxChannelValue;
+
+                    return new MonoChromeShader((byte)MathF.Round(MonoChromeShader.white * whitePercentage), isQuad);
+
+                }
+                else {
+
+                    return null;
+
+                }
+
+
+            }
+            else {
+
+                var monoValues = new List<int>();
+                foreach (var color in values) {
+
+                    var firstChannel = color.r;
+
+                    var isGrey = color.g == firstChannel && color.b == firstChannel;
+
+                    if (!isGrey) {
+                        return null;
+                    }
+
+                    var whitePercentage = color.r / XRGB555.maxChannelValue;
+                    monoValues.Add((int)MathF.Round(DynamicMonoChromeShader.white * whitePercentage));
+
+                }
+
+                var newShader = new DynamicMonoChromeShader();
+                newShader.isQuad = isQuad;
+
+                // Remember that regardless of shape, monochrome will always store 4 vertex colors
+                if (!isQuad) {
+                    monoValues.Add(0);
+                }
+
+                var quadMonoPosToColor = new int[] { 3, 1, 0, 2 };
+                var triangleMonoPosToColor = new int[] { 2, 1, 0, 3 };
+
+                var orderedMonoValues = new List<int>();
+
+                foreach (var i in Enumerable.Range(0, monoValues.Count)) {
+
+                    if (isQuad) {
+                        //orderedMonoValues[quadMonoPosToColor[i]] = monoValues[i];
+                        orderedMonoValues.Add(monoValues[quadMonoPosToColor[i]]);
+                    }
+                    else {
+                        //orderedMonoValues[triangleMonoPosToColor[i]] = monoValues[i];
+
+                        orderedMonoValues.Add(monoValues[triangleMonoPosToColor[i]]);
+                    }
+
+                }
+
+                newShader.values = orderedMonoValues.ToArray();
+                newShader.Apply();
+
+                return newShader;
+
+            }
+
+        }
+
+        public TileShaders Clone(bool isQuad) {
 
             var colors = new List<XRGB555>();
 
@@ -3650,7 +5031,37 @@ namespace FCopParser {
                 colors.Add(color.Clone());
             }
 
+            if (!isQuad && colors.Count == 4) {
+                colors.RemoveAt(colors.Count - 1);
+            }
+            else if (isQuad && colors.Count != 4) {
+                colors.Add(new XRGB555(false, 31, 31, 31));
+            }
+
             return new ColorShader(colors.ToArray(), isQuad);
+
+        }
+
+        public bool Compare(TileShaders shaders) {
+
+            if (shaders is ColorShader colorShader) {
+
+                var i = 0;
+                foreach (var col in values) {
+
+                    if (!col.Compile().SequenceEqual(colorShader.values[i].Compile())) {
+                        return false;
+                    }
+
+                    i++;
+                }
+
+                return true;
+
+            }
+            else {
+                return false;
+            }
 
         }
 
@@ -3699,8 +5110,18 @@ namespace FCopParser {
             return new List<byte> { 0 };
         }
 
-        public TileShaders Clone() {
-            return new AnimatedShader(this.isQuad);
+        public TileShaders VerifyCorrectShader() {
+            return null;
+        }
+
+        public TileShaders Clone(bool isQuad) {
+            return new AnimatedShader(isQuad);
+        }
+
+        public bool Compare(TileShaders shaders) {
+
+            return this.isQuad && shaders.isQuad;
+
         }
 
     }
@@ -3766,7 +5187,7 @@ namespace FCopParser {
         Damage_Both_Medium = 6,
         Damage_Both_High = 7,
         Damage_Walker_Medium_Hover_Low = 8,
-        Damage_Walker_High_Hover_Medium = 9,
+        Damage_Walker_High_Hover_Medium  = 9,
         Damage_Walker_Instant_Hover_Low = 10,
         Damage_Walker_Instant_Hover_Medium = 11,
         Damage_Walker_Low_Hover_None = 12,
