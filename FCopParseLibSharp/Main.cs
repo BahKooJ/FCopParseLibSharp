@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.IO;
 using FCopParser;
 
+
+
 var allFiles = new List<IFFParser>() {
     new IFFParser(File.ReadAllBytes("Mp")),
     new IFFParser(File.ReadAllBytes("M2C")),
@@ -22,27 +24,36 @@ var allFiles = new List<IFFParser>() {
     new IFFParser(File.ReadAllBytes("C:/Program Files (x86)/Electronic Arts/Future Cop/missions/Un"))
 };
 
-var i = 0;
-
+var allFilesMac = new List<MacIFFLevelParser>() {
+    new MacIFFLevelParser(File.ReadAllBytes("Mac/Mp")),
+    new MacIFFLevelParser(File.ReadAllBytes("Mac/M2C")),
+    new MacIFFLevelParser(File.ReadAllBytes("Mac/ConFt")),
+    new MacIFFLevelParser(File.ReadAllBytes("Mac/HK")),
+    new MacIFFLevelParser(File.ReadAllBytes("Mac/JOKE")),
+    new MacIFFLevelParser(File.ReadAllBytes("Mac/LAX1")),
+    new MacIFFLevelParser(File.ReadAllBytes("Mac/LAX2")),
+    new MacIFFLevelParser(File.ReadAllBytes("Mac/M1A1")),
+    new MacIFFLevelParser(File.ReadAllBytes("Mac/M3A")),
+    new MacIFFLevelParser(File.ReadAllBytes("Mac/M3B")),
+    new MacIFFLevelParser(File.ReadAllBytes("Mac/M4A1")),
+    new MacIFFLevelParser(File.ReadAllBytes("Mac/OV")),
+    new MacIFFLevelParser(File.ReadAllBytes("Mac/OVMP")),
+    new MacIFFLevelParser(File.ReadAllBytes("Mac/Slim")),
+    new MacIFFLevelParser(File.ReadAllBytes("Mac/Un"))
+};
 
 var foo = new ScriptAnalysis(allFiles);
 
-foo.BitCompareActorsRange(new() { 5, 6, 8, 9, 20, 26, 27, 28, 36 }, 47);
+foo.EndianCompareActors(20, allFilesMac);
+
+//foo.CompareActorsRange(new() { 1, 5, 6, 8, 9, 10, 11, 12, 16, 20, 25, 26, 27, 28, 30, 31, 32, 33, 36, 37, 38 });
+
+//foo.CompareActors(20);
+
+//foo.BitCompareActorsRange(new List<int>() { 16 }, 62);
+
+//foo.Data16RangeCompareActorsRange(new() { 5 }, 68);
 
 
 
 return;
-
-//foo.levels[i].fileManager.DeletesFiles("Cdcs");
-
-foo.levels[i].fileManager.GetFile("Cdcs", 11).data = foo.levels[0].fileManager.GetFile("Cdcs", 11).data;
-
-foo.levels[i].Compile();
-
-var parser = new IFFParser(foo.levels[i].fileManager);
-
-parser.Compile();
-
-parser.parsedData.CreateFileList("debugList.txt");
-
-File.WriteAllBytes("Mod", parser.bytes);

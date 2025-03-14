@@ -557,6 +557,66 @@ class ScriptAnalysis {
 
     }
 
+    public void EndianCompareActors(int type, List<MacIFFLevelParser> macFiles) {
+
+        var message = "";
+        var uniqueValueCounter = new Dictionary<int, HashSet<int>>();
+
+        var fileI = 0;
+        foreach (var file in levels) {
+
+
+            var actors = file.sceneActors.actors.Where(actor => {
+
+                return (int)actor.behaviorType == type;
+
+            });
+
+            foreach (var actor in actors) {
+
+                var offset = 28;
+
+                var macFile = macFiles[fileI];
+                
+                var length = Utils.BytesToInt(actor.rawFile.data.ToArray(), 4) - 28;
+
+                var compareData = macFile.BitComparison(actor.rawFile.dataFourCC, actor.DataID, offset, length, actor.rawFile.data.GetRange(offset, length));
+
+                var i = offset;
+                foreach (var compare in compareData) {
+
+                    if (uniqueValueCounter.ContainsKey(i)) {
+                        uniqueValueCounter[i].Add(compare);
+                    }
+                    else {
+                        uniqueValueCounter[i] = new();
+                        uniqueValueCounter[i].Add(compare);
+                    }
+
+                    i++;
+                }
+
+            }
+
+            fileI++;
+
+        }
+
+        foreach (var pair in uniqueValueCounter) {
+            message += pair.Key + ": ";
+
+            var sortedValues = pair.Value.OrderBy(v => v);
+            foreach (var value in sortedValues) {
+
+                message += value.ToString() + " ";
+            }
+            message += "\n";
+        }
+
+        Console.WriteLine(message);
+
+    }
+
     public void BitCompareActorsRange(List<int> types, int index) {
 
         var message = "";
@@ -608,6 +668,44 @@ class ScriptAnalysis {
 
         }
 
+
+        Console.WriteLine(message);
+
+    }
+
+    public void Data16RangeCompareActorsRange(List<int> types, int index) {
+
+        var message = "";
+        var uniqueValueCounter = new HashSet<int>();
+
+        var fileI = 0;
+        foreach (var file in levels) {
+
+            var actors = file.sceneActors.actors.Where(actor => {
+
+                return types.Contains((int)actor.behaviorType);
+
+            });
+
+            foreach (var actor in actors) {
+                
+                uniqueValueCounter.Add(BitConverter.ToInt16(actor.rawFile.data.ToArray(), index));
+
+            }
+
+            fileI++;
+
+        }
+
+        message += index + ": ";
+        var sortedValues = uniqueValueCounter.OrderBy(v => v);
+
+        foreach (var value in sortedValues) {
+
+            message += value.ToString() + " ";
+
+        }
+        message += "\n";
 
         Console.WriteLine(message);
 

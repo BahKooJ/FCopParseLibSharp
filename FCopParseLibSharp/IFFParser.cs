@@ -15,7 +15,7 @@ namespace FCopParser {
         // consants for important fourCCs.
         // Other fourCCs can be ignored as they're just a description of what the item is.
         // However it is import to test for these specifically to know how to parse the chunk.
-        static class FourCC {
+        public static class FourCC {
             public const string CTRL = "CTRL";
             public const string SHOC = "SHOC";
             public const string FILL = "FILL";

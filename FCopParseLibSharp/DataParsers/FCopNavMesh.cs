@@ -35,7 +35,7 @@ namespace FCopParser {
 
                 var groundCast = Utils.BitsToInt(Utils.CopyBitsOfRange(bitField, 80, 82));
                 var readHeightOffset = Utils.BitsToInt(Utils.CopyBitsOfRange(bitField, 82, 84));
-                var heightOffset = Utils.BitsToSignedInt(Utils.CopyBitsOfRange(bitField, 84, 96), 12);
+                var heightOffset = Utils.BitsToInt(Utils.CopyBitsOfRange(bitField, 84, 96));
 
                 nodes.Add(new NavNode(
                     index,
