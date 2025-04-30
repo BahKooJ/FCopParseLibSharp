@@ -44,15 +44,39 @@ var allFilesMac = new List<MacIFFLevelParser>() {
 
 var foo = new ScriptAnalysis(allFiles);
 
-foo.EndianCompareActors(20, allFilesMac);
+//foo.CompareResourceRefs(35);
 
-//foo.CompareActorsRange(new() { 1, 5, 6, 8, 9, 10, 11, 12, 16, 20, 25, 26, 27, 28, 30, 31, 32, 33, 36, 37, 38 });
+//File.WriteAllBytes("CdcsM2C", allFiles[1].parsedData.GetFile("Cdcs", 11).data.ToArray());
 
-//foo.CompareActors(20);
+//foo.CompareCdcs();
 
-//foo.BitCompareActorsRange(new List<int>() { 16 }, 62);
+//foo.CompareActors(99);
+//foo.EndianCompareActors(99, allFilesMac);
 
-//foo.Data16RangeCompareActorsRange(new() { 5 }, 68);
+//foo.CompareActorsRange(new() { 5, 20, 26, 28 });
+
+
+//foo.DataBitRangeCompareActorsRangeByLevel(new List<int>() { 96 }, 37, 0x04);
+//foo.DataBitRangeCompareActorsRangeByBehaviorType(new List<int>() { 6, 8, 36 }, 72, 0x80);
+
+//foo.DataRangeCompareActorsRangeByLevel(new List<int>() { 14 }, 46, true);
+//foo.DataRangeCompareActorsRangeByBehaviorType(new List<int>() { 14 }, 46, true);
+
+//foo.Data16RangeCompareActorsRange(new() { 98 }, 32);
+//foo.Data16RangeCompareActorsRange(new() { 10 }, 60);
+
+foo.DiscoverScriptingByte(4);
+
+//foo.BitCompareActorsRange(new() { 32 }, 52);
+
+//foo.PropertyCompareActors(new() { 6, 8, 36 }, 56, true, 70, true);
+
+
+//foo.BitCompareActorsRange(new List<int>() { 20 }, 84);
+
+//foo.EntityExplosionActorAnalysis();
+
+//foo.TestForExplosionIDRef(94);
 
 
 
