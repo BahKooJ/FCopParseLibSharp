@@ -58,48 +58,76 @@ namespace FCopParser {
         public int id;
 
         public int offset;
+        public int terminationOffset;
         public List<byte> compiledBytes = new();
+        public List<ByteInstruction> assembly = new();
 
         public FCopScript(int offset, List<byte> compiledBytes) {
             this.id = offset;
             this.offset = offset;
-            this.compiledBytes.AddRange(compiledBytes);
-            Decompile(compiledBytes);
+            assembly = Decompile(offset, compiledBytes, out terminationOffset);
+            this.compiledBytes = compiledBytes.GetRange(offset, terminationOffset - offset);
         }
 
         public Dictionary<int, ByteCodeOperationData> byteCodeData = new() {
-
-            { 8, new ByteCodeOperationData(ByteCode.Jump, 0, 1, false) },
+            { 0, new ByteCodeOperationData(ByteCode.END, 0, 0, false) },
+            { 1, new ByteCodeOperationData(ByteCode.BIT_FLIP, 0, 1, true) },
+            { 2, new ByteCodeOperationData(ByteCode.BIT_SHIFT_RIGHT, 0, 1, true) },
+            { 3, new ByteCodeOperationData(ByteCode.LITERAL_16, 0, 2, true) },
+            { 8, new ByteCodeOperationData(ByteCode.JUMP, 0, 1, false) },
+            { 11, new ByteCodeOperationData(ByteCode.BYTE11, 1, 0, true) },
+            { 12, new ByteCodeOperationData(ByteCode.BYTE12, 1, 0, false) },
+            { 13, new ByteCodeOperationData(ByteCode.BYTE13, 1, 0, false) },
+            { 14, new ByteCodeOperationData(ByteCode.BYTE14, 1, 0, false) },
+            { 15, new ByteCodeOperationData(ByteCode.BYTE15, 1, 0, true) },
             { 16, new ByteCodeOperationData(ByteCode.GET_16, 1, 0, true) },
-            { 20, new ByteCodeOperationData(ByteCode.ConditionalJump, 1, 1, false) },
+            { 17, new ByteCodeOperationData(ByteCode.GET_17, 1, 0, true) },
+            { 18, new ByteCodeOperationData(ByteCode.GET_18, 1, 0, true) },
+            { 19, new ByteCodeOperationData(ByteCode.GET_19, 1, 0, true) },
+            { 20, new ByteCodeOperationData(ByteCode.CONDITIONAL_JUMP, 1, 1, false) },
             { 21, new ByteCodeOperationData(ByteCode.INCREMENT_16, 1, 0, false) },
             { 24, new ByteCodeOperationData(ByteCode.INCREMENT_19, 1, 0, false) }, 
             { 25, new ByteCodeOperationData(ByteCode.DECREMENT_16, 1, 0, false) },
+            { 28, new ByteCodeOperationData(ByteCode.DECREMENT_19, 1, 0, false) },
+            { 29, new ByteCodeOperationData(ByteCode.SET_16, 2, 0, false) },
             { 30, new ByteCodeOperationData(ByteCode.Sound, 2, 0, false) },
-            { 35, new ByteCodeOperationData(ByteCode.GreaterThan, 2, 0, true) },
-            { 37, new ByteCodeOperationData(ByteCode.LessThan, 2, 0, true) },
-            { 44, new ByteCodeOperationData(ByteCode.And, 2, 0, true) },
+            { 31, new ByteCodeOperationData(ByteCode.BYTE31, 2, 0, false) },
+            { 32, new ByteCodeOperationData(ByteCode.SET_19, 2, 0, false) },
+            { 33, new ByteCodeOperationData(ByteCode.EQUAL, 2, 0, true) },
+            { 34, new ByteCodeOperationData(ByteCode.NOT_EQUAL, 2, 0, true) },
+            { 35, new ByteCodeOperationData(ByteCode.GREATER_THAN, 2, 0, true) },
+            { 36, new ByteCodeOperationData(ByteCode.GREATER_THAN_OR_EQUAL, 2, 0, true) },
+            { 37, new ByteCodeOperationData(ByteCode.LESS_THAN, 2, 0, true) },
+            { 38, new ByteCodeOperationData(ByteCode.LESS_THAN_OR_EQUAL, 2, 0, true) },
+            { 39, new ByteCodeOperationData(ByteCode.ADD, 2, 0, true) },
+            { 40, new ByteCodeOperationData(ByteCode.SUBTRACT, 2, 0, true) },
+            { 44, new ByteCodeOperationData(ByteCode.AND, 2, 0, true) },
+            { 47, new ByteCodeOperationData(ByteCode.BYTE47, 2, 0, true) },
+            { 48, new ByteCodeOperationData(ByteCode.ADD_16_SET, 2, 0, false) },
+            { 51, new ByteCodeOperationData(ByteCode.BYTE51, 2, 0, false) },
+            { 52, new ByteCodeOperationData(ByteCode.SUB_16_SET, 2, 0, false) },
+            { 56, new ByteCodeOperationData(ByteCode.Destroy, 3, 0, false) },
+            { 57, new ByteCodeOperationData(ByteCode.BYTE57, 3, 0, false) },
+            { 58, new ByteCodeOperationData(ByteCode.BYTE58, 3, 0, false) },
+            { 59, new ByteCodeOperationData(ByteCode.BYTE59, 3, 0, false) },
             { 60, new ByteCodeOperationData(ByteCode.Spawn, 3, 0, false) },
+            { 61, new ByteCodeOperationData(ByteCode.SpawnAll, 3, 0, false) },
+            { 62, new ByteCodeOperationData(ByteCode.BYTE62, 3, 0, false) },
 
         };
 
         // Takes the bytes and puts them into a very basic struct.
         // This struct contains the parameters that the instruction needs.
         // It has no idea the types, it does keep track of expressions.
-        public List<ByteInstruction> Decompile(List<byte> code) {
+        public List<ByteInstruction> Decompile(int startingOffset, List<byte> code, out int terminationOffset) {
 
             var instructions = new List<ByteInstruction>();
             var floatingExpressions = new List<ByteInstruction>();
 
-            var i = 0;
+            var i = startingOffset;
             while (i < code.Count) {
 
                 var b = code[i];
-
-                if (b == 0) {
-                    i++;
-                    continue;
-                }
 
                 // Key Byte found!
                 if (Enum.IsDefined(typeof(ByteCode), (int)b)) {
@@ -128,6 +156,19 @@ namespace FCopParser {
                     }
                     else {
 
+                        // The expressions would've already been used if they were needed.
+                        if (floatingExpressions.Count > 0) {
+
+                            foreach (var floatingExpression in floatingExpressions) {
+
+                                instructions.Add(new ByteInstruction(ByteCode.NONE, 0, new() { floatingExpression }));
+
+                            }
+
+                        }
+
+                        floatingExpressions.Clear();
+
                         instructions.Add(instruction);
 
                     }
@@ -137,12 +178,16 @@ namespace FCopParser {
                     if (instructionData.rightParameterCount != 0) {
 
                         foreach (var rightI in Enumerable.Range(0, instructionData.rightParameterCount)) {
-                            instruction.parameters.Add(new ByteInstruction(ByteCode.Literal, code[i + 1 + rightI], new()));
+                            instruction.parameters.Add(new ByteInstruction(ByteCode.LITERAL, code[i + 1 + rightI], new()));
                         }
 
                         i += instructionData.rightParameterCount + 1;
                         continue;
 
+                    }
+
+                    if (instruction.byteCode == ByteCode.END) {
+                        break;
                     }
 
                 }
@@ -152,7 +197,7 @@ namespace FCopParser {
                         throw new Exception();
                     }
 
-                    floatingExpressions.Add(new ByteInstruction(ByteCode.Literal, b, new()));
+                    floatingExpressions.Add(new ByteInstruction(ByteCode.LITERAL, b, new()));
 
                 }
 
@@ -162,10 +207,14 @@ namespace FCopParser {
 
             if (floatingExpressions.Count > 0) {
 
-                throw new Exception();
+                foreach (var floatingExpression in floatingExpressions) {
+
+                    instructions.Add(new ByteInstruction(ByteCode.NONE, 0, new() { floatingExpression }));
+
+                }
 
             }
-
+            terminationOffset = i + 1;
             return instructions;
 
         }
@@ -181,44 +230,51 @@ namespace FCopParser {
     }
 
     public enum ByteCode {
-        Literal = -1,
-        End = 0,
-        BitFlip = 1,
-        ShiftRight = 2,
-        Bit16Literal = 3,
-        Jump = 8,
-        Unknown11 = 11,
-        Unknown12 = 12,
-        Unknown13 = 13,
+        NONE = -2,
+        LITERAL = -1,
+        END = 0,
+        BIT_FLIP = 1,
+        BIT_SHIFT_RIGHT = 2,
+        LITERAL_16 = 3,
+        JUMP = 8,
+        BYTE11 = 11,
+        BYTE12 = 12,
+        BYTE13 = 13,
+        BYTE14 = 14,
+        BYTE15 = 15,
         GET_16 = 16,
+        GET_17 = 17,
         GET_18 = 18,
         GET_19 = 19,
-        ConditionalJump = 20,
+        CONDITIONAL_JUMP = 20,
         INCREMENT_16 = 21,
         INCREMENT_19 = 24,
         DECREMENT_16 = 25,
         DECREMENT_19 = 28,
-        Set = 29,
+        SET_16 = 29,
         Sound = 30,
-        Unknown31 = 31,
+        BYTE31 = 31,
         SET_19 = 32,
-        Equal = 33,
-        NotEqual = 34,
-        GreaterThan = 35,
-        GreaterThanOrEqual = 36,
-        LessThan = 37,
-        LessThanOrEqual = 38,
-        Add = 39,
-        Subtract = 40,
-        And = 44,
-        Unknown47 = 47,
-        Unkown51 = 51,
-        SubtractSet = 52,
+        EQUAL = 33,
+        NOT_EQUAL = 34,
+        GREATER_THAN = 35,
+        GREATER_THAN_OR_EQUAL = 36,
+        LESS_THAN = 37,
+        LESS_THAN_OR_EQUAL = 38,
+        ADD = 39,
+        SUBTRACT = 40,
+        AND = 44,
+        BYTE47 = 47,
+        ADD_16_SET = 48,
+        BYTE51 = 51,
+        SUB_16_SET = 52,
         Destroy = 56,
-        Unknown57 = 57,
-        Unknown59 = 59,
+        BYTE57 = 57,
+        BYTE58 = 58,
+        BYTE59 = 59,
         Spawn = 60,
-        SpawnAll = 61
+        SpawnAll = 61,
+        BYTE62 = 62,
     }
 
     public struct ByteCodeOperationData {

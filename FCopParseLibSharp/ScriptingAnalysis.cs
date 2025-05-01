@@ -16,8 +16,11 @@ class ScriptAnalysis {
 
     public ScriptAnalysis(List<IFFParser> files) {
 
+        var i = 0;
         foreach (var file in files) {
+            var name = fileNames[i];
             this.levels.Add(new FCopLevel(file.parsedData));
+            i++;
         }
 
     }
@@ -1567,6 +1570,91 @@ class ScriptAnalysis {
             }
 
         }
+
+    }
+
+    public void LogFloatingExpressions() {
+
+        HashSet<ByteCode> result = new();
+
+        var fileI = 0;
+        foreach (var file in levels) {
+
+            foreach (var script in file.scripting.rpns.code) {
+
+                var instructions = script.Value.assembly.Where(it => it.byteCode == ByteCode.NONE);
+
+                foreach (var instruction in instructions) {
+                    result.Add(instruction.parameters[0].byteCode);
+                }
+
+            }
+
+            foreach (var func in file.scripting.functionParser.functions) {
+
+                var instructions = func.runCondition.assembly.Where(it => it.byteCode == ByteCode.NONE).ToList();
+                instructions.AddRange(func.code.assembly.Where(it => it.byteCode == ByteCode.NONE));
+
+                foreach (var instruction in instructions) {
+                    result.Add(instruction.parameters[0].byteCode);
+
+                }
+
+            }
+
+            fileI++;
+
+        }
+
+        foreach (var res in result) {
+            Console.WriteLine(res);
+        }
+
+    }
+
+    public void LogScript(FCopScript script) {
+
+        var message = new StringBuilder();
+
+        void LogExpression(StringBuilder stringBuilder, ByteInstruction instruction) {
+
+            stringBuilder.Append("<" + instruction.byteCode + ", " + instruction.value + ">(");
+
+            if (instruction.parameters.Count != 0) {
+
+                foreach (var paramter in instruction.parameters) {
+                    LogExpression(stringBuilder, paramter);
+                    message.Append(", ");
+                }
+
+                message.Remove(message.Length - 2, 2);
+
+            }
+
+            stringBuilder.Append(')');
+
+        }
+
+        foreach (var instruction in script.assembly) {
+
+            message.Append("[" + instruction.byteCode + " (");
+
+            if (instruction.parameters.Count != 0) {
+
+                foreach (var paramter in instruction.parameters) {
+                    LogExpression(message, paramter);
+                    message.Append(", ");
+                }
+
+                message.Remove(message.Length - 2, 2);
+
+            }
+
+            message.Append(")]\n");
+
+        }
+
+        Console.Write(message.ToString());
 
     }
 
