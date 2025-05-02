@@ -67,7 +67,7 @@ var foo = new ScriptAnalysis(allFiles);
 
 //foo.LogFloatingExpressions();
 
-foo.LogScript(foo.levels[9].scripting.rpns.code[0]);
+//foo.LogScript(foo.levels[9].scripting.rpns.code[0]);
 
 //foo.BitCompareActorsRange(new() { 32 }, 52);
 

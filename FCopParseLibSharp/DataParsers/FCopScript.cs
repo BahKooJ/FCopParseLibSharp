@@ -61,15 +61,17 @@ namespace FCopParser {
         public int terminationOffset;
         public List<byte> compiledBytes = new();
         public List<ByteInstruction> assembly = new();
+        public List<ScriptNode> code = new();
 
         public FCopScript(int offset, List<byte> compiledBytes) {
             this.id = offset;
             this.offset = offset;
             assembly = Decompile(offset, compiledBytes, out terminationOffset);
             this.compiledBytes = compiledBytes.GetRange(offset, terminationOffset - offset);
+            code = Disassemble(assembly);
         }
 
-        public Dictionary<int, ByteCodeOperationData> byteCodeData = new() {
+        public static Dictionary<int, ByteCodeOperationData> byteCodeData = new() {
             { 0, new ByteCodeOperationData(ByteCode.END, 0, 0, false) },
             { 1, new ByteCodeOperationData(ByteCode.BIT_FLIP, 0, 1, true) },
             { 2, new ByteCodeOperationData(ByteCode.BIT_SHIFT_RIGHT, 0, 1, true) },
@@ -113,6 +115,53 @@ namespace FCopParser {
             { 60, new ByteCodeOperationData(ByteCode.Spawn, 3, 0, false) },
             { 61, new ByteCodeOperationData(ByteCode.SpawnAll, 3, 0, false) },
             { 62, new ByteCodeOperationData(ByteCode.BYTE62, 3, 0, false) },
+        };
+
+        // Byte code + par count (for overloads)
+        public static Dictionary<int, ScriptOperationData> scriptNodeData = new() {
+            // None
+            { -19, new ScriptOperationData("None", ScriptDataType.Any, false, new() { new ScriptParameter("Expression", ScriptDataType.Any) }) },
+            { 81, new ScriptOperationData("Else", ScriptDataType.Void, false, new() { new ScriptParameter("Jump", ScriptDataType.Int) }) },
+            { 111, new ScriptOperationData("11", ScriptDataType.Int, false, new() { new ScriptParameter("Par0", ScriptDataType.Int) }) },
+            { 121, new ScriptOperationData("12", ScriptDataType.Void, false, new() { new ScriptParameter("Par0", ScriptDataType.Int) }) },
+            { 131, new ScriptOperationData("13", ScriptDataType.Void, false, new() { new ScriptParameter("Par0", ScriptDataType.Int) }) },
+            { 141, new ScriptOperationData("14", ScriptDataType.Void, false, new() { new ScriptParameter("Par0", ScriptDataType.Int) }) },
+            { 151, new ScriptOperationData("Get 15", ScriptDataType.Int, false, new() { new ScriptParameter("ID", ScriptDataType.Int) }) },
+            { 161, new ScriptOperationData("Get 16", ScriptDataType.Int, false, new() { new ScriptParameter("ID", ScriptDataType.Int) }) },
+            { 171, new ScriptOperationData("Get 17", ScriptDataType.Int, false, new() { new ScriptParameter("ID", ScriptDataType.Int) }) },
+            { 181, new ScriptOperationData("Get 18", ScriptDataType.Int, false, new() { new ScriptParameter("ID", ScriptDataType.Int) }) },
+            { 191, new ScriptOperationData("Get 19", ScriptDataType.Int, false, new() { new ScriptParameter("ID", ScriptDataType.Int) }) },
+            { 202, new ScriptOperationData("If", ScriptDataType.Void, false, new() { new ScriptParameter("Condition", ScriptDataType.Bool), new ScriptParameter("Jump", ScriptDataType.Int) }) },
+            { 211, new ScriptOperationData("++(16)", ScriptDataType.Void, true, new() { new ScriptParameter("Left", ScriptDataType.Int) }) },
+            { 241, new ScriptOperationData("++(19)", ScriptDataType.Void, true, new() { new ScriptParameter("Left", ScriptDataType.Int) }) },
+            { 251, new ScriptOperationData("--(16)", ScriptDataType.Void, true, new() { new ScriptParameter("Left", ScriptDataType.Int) }) },
+            { 281, new ScriptOperationData("--(19)", ScriptDataType.Void, true, new() { new ScriptParameter("Left", ScriptDataType.Int) }) },
+            { 292, new ScriptOperationData("=(16)", ScriptDataType.Void, true, new() { new ScriptParameter("Left", ScriptDataType.Int), new ScriptParameter("Right", ScriptDataType.Int) }) },
+            { 302, new ScriptOperationData("30", ScriptDataType.Void, false, new() { new ScriptParameter("Par0", ScriptDataType.Int), new ScriptParameter("Par1", ScriptDataType.Int) }) },
+            { 312, new ScriptOperationData("31", ScriptDataType.Void, false, new() { new ScriptParameter("Par0", ScriptDataType.Int), new ScriptParameter("Par1", ScriptDataType.Int) }) },
+            { 322, new ScriptOperationData("=(19)", ScriptDataType.Void, false, new() { new ScriptParameter("Par0", ScriptDataType.Int), new ScriptParameter("Par1", ScriptDataType.Int) }) },
+            { 332, new ScriptOperationData("==", ScriptDataType.Bool, true, new() { new ScriptParameter("Left", ScriptDataType.Int), new ScriptParameter("Right", ScriptDataType.Int) }) },
+            { 331, new ScriptOperationData("==(1)", ScriptDataType.Bool, false, new() { new ScriptParameter("Par0", ScriptDataType.Int) }) },
+            { 342, new ScriptOperationData("!=", ScriptDataType.Bool, true, new() { new ScriptParameter("Left", ScriptDataType.Int), new ScriptParameter("Right", ScriptDataType.Int) }) },
+            { 352, new ScriptOperationData(">", ScriptDataType.Bool, true, new() { new ScriptParameter("Left", ScriptDataType.Int), new ScriptParameter("Right", ScriptDataType.Int) }) },
+            { 362, new ScriptOperationData(">=", ScriptDataType.Bool, true, new() { new ScriptParameter("Left", ScriptDataType.Int), new ScriptParameter("Right", ScriptDataType.Int) }) },
+            { 372, new ScriptOperationData("<", ScriptDataType.Bool, true, new() { new ScriptParameter("Left", ScriptDataType.Int), new ScriptParameter("Right", ScriptDataType.Int) }) },
+            { 382, new ScriptOperationData("<=", ScriptDataType.Bool, true, new() { new ScriptParameter("Left", ScriptDataType.Int), new ScriptParameter("Right", ScriptDataType.Int) }) },
+            { 392, new ScriptOperationData("+", ScriptDataType.Int, true, new() { new ScriptParameter("Left", ScriptDataType.Int), new ScriptParameter("Right", ScriptDataType.Int) }) },
+            { 402, new ScriptOperationData("-", ScriptDataType.Int, true, new() { new ScriptParameter("Left", ScriptDataType.Int), new ScriptParameter("Right", ScriptDataType.Int) }) },
+            { 442, new ScriptOperationData("&&", ScriptDataType.Bool, true, new() { new ScriptParameter("Left", ScriptDataType.Bool), new ScriptParameter("Right", ScriptDataType.Bool) }) },
+            { 472, new ScriptOperationData("47", ScriptDataType.Int, false, new() { new ScriptParameter("Par0", ScriptDataType.Int), new ScriptParameter("Par1", ScriptDataType.Int) }) },
+            { 482, new ScriptOperationData("+=(16)", ScriptDataType.Void, false, new() { new ScriptParameter("Left", ScriptDataType.Int), new ScriptParameter("Right", ScriptDataType.Int) }) },
+            { 512, new ScriptOperationData("51", ScriptDataType.Void, false, new() { new ScriptParameter("Par0", ScriptDataType.Int), new ScriptParameter("Par1", ScriptDataType.Int) }) },
+            { 522, new ScriptOperationData("-=(16)", ScriptDataType.Void, false, new() { new ScriptParameter("Left", ScriptDataType.Int), new ScriptParameter("Right", ScriptDataType.Int) }) },
+            { 563, new ScriptOperationData("56", ScriptDataType.Void, false, new() { new ScriptParameter("Par0", ScriptDataType.Int), new ScriptParameter("Par1", ScriptDataType.Int), new ScriptParameter("Par2", ScriptDataType.Int) }) },
+            { 562, new ScriptOperationData("56(2)", ScriptDataType.Void, false, new() { new ScriptParameter("Par0", ScriptDataType.Int), new ScriptParameter("Par1", ScriptDataType.Int) }) },
+            { 573, new ScriptOperationData("57", ScriptDataType.Void, false, new() { new ScriptParameter("Par0", ScriptDataType.Int), new ScriptParameter("Par1", ScriptDataType.Int), new ScriptParameter("Par2", ScriptDataType.Int) }) },
+            { 583, new ScriptOperationData("58", ScriptDataType.Void, false, new() { new ScriptParameter("Par0", ScriptDataType.Int), new ScriptParameter("Par1", ScriptDataType.Int), new ScriptParameter("Par2", ScriptDataType.Int) }) },
+            { 593, new ScriptOperationData("59", ScriptDataType.Void, false, new() { new ScriptParameter("Par0", ScriptDataType.Int), new ScriptParameter("Par1", ScriptDataType.Int), new ScriptParameter("Par2", ScriptDataType.Int) }) },
+            { 603, new ScriptOperationData("60", ScriptDataType.Void, false, new() { new ScriptParameter("Par0", ScriptDataType.Int), new ScriptParameter("Par1", ScriptDataType.Int), new ScriptParameter("Par2", ScriptDataType.Int) }) },
+            { 613, new ScriptOperationData("61", ScriptDataType.Void, false, new() { new ScriptParameter("Par0", ScriptDataType.Int), new ScriptParameter("Par1", ScriptDataType.Int), new ScriptParameter("Par2", ScriptDataType.Int) }) },
+            { 623, new ScriptOperationData("62", ScriptDataType.Void, false, new() { new ScriptParameter("Par0", ScriptDataType.Int), new ScriptParameter("Par1", ScriptDataType.Int), new ScriptParameter("Par2", ScriptDataType.Int) }) },
 
         };
 
@@ -219,6 +268,148 @@ namespace FCopParser {
 
         }
 
+        public List<ScriptNode> Disassemble(List<ByteInstruction> instructions) {
+
+            List<(ScriptNode node, int byteCount)> nodesToNest = new();
+
+            ScriptNode UpwrapAssembly(ByteInstruction instruction, bool testForNest, out int unwrappedByteCount) {
+
+                // As much as I want to keep everything generic, these have to be tested for.
+
+                if (instruction.byteCode == ByteCode.LITERAL) {
+
+                    unwrappedByteCount = 1;
+                    if (instruction.value >= 128) {
+                        return new LiteralNode(instruction.value - 128);
+                    }
+                    else {
+                        return new LiteralNode(instruction.value);
+                    }
+
+                }
+
+                if (instruction.byteCode == ByteCode.BIT_FLIP) {
+
+                    int value = instruction.parameters[0].value;
+
+                    value ^= -1;
+
+                    unwrappedByteCount = 2;
+                    return new LiteralNode(value);
+
+                }
+
+                if (instruction.byteCode == ByteCode.BIT_SHIFT_RIGHT) {
+
+                    int value = instruction.parameters[0].value;
+
+                    // I can't figure this out so adding 128 does the same thing I guess.
+                    value += 128;
+
+                    unwrappedByteCount = 2;
+                    return new LiteralNode(value);
+
+                }
+
+                if (instruction.byteCode == ByteCode.LITERAL_16) {
+
+                    int value = BitConverter.ToInt16(new byte[] { instruction.parameters[0].value, instruction.parameters[1].value });
+
+                    unwrappedByteCount = 3;
+                    return new LiteralNode(value);
+
+                }
+
+                if (instruction.byteCode == ByteCode.END) {
+
+                    unwrappedByteCount = 1;
+                    return new ScriptNode(ByteCode.END, "End", ScriptDataType.Void, false, new());
+
+                }
+
+                // The none instruction doesn't actually have any bytes. Because it's a statement for floating expressions.
+                // The set of 1 is to account for the key byte.
+                if (instruction.byteCode == ByteCode.NONE) {
+                    unwrappedByteCount = 0;
+                }
+                else {
+                    unwrappedByteCount = 1;
+
+                }
+
+                var unwrappedParameters = new List<ScriptNode>();
+
+                foreach (var parameter in instruction.parameters) {
+                    unwrappedParameters.Add(UpwrapAssembly(parameter, false, out var parByteCount));
+                    unwrappedByteCount += parByteCount;
+                }
+
+                var paraCount = instruction.parameters.Count;
+
+                var scriptData = scriptNodeData[((int)instruction.byteCode * 10) + paraCount];
+
+                var node = new ScriptNode(instruction.byteCode, scriptData.name, scriptData.defaultReturnType, scriptData.isOperator, new(scriptData.parameterData));
+                node.parameters = unwrappedParameters;
+
+                bool addedToNest = false;
+                if (nodesToNest.Count > 0 && testForNest) {
+
+                    var nodeToNest = nodesToNest.Last();
+
+                    nodeToNest.node.nestedNodes.Add(node);
+
+                    foreach (var i in Enumerable.Range(0, nodesToNest.Count)) {
+
+                        var n = nodesToNest[i];
+                        n.byteCount -= unwrappedByteCount;
+                        nodesToNest[i] = n;
+
+                        if (n.byteCount < 0) {
+                            throw new Exception();
+                        }
+
+                    }
+
+                    nodesToNest.RemoveAll(n => n.byteCount == 0);
+
+                    addedToNest = true;
+                }
+
+                if (instruction.byteCode == ByteCode.JUMP) {
+
+                    nodesToNest.Add((node, instruction.parameters[0].value - 1));
+
+                }
+                else if (instruction.byteCode == ByteCode.CONDITIONAL_JUMP) {
+
+                    nodesToNest.Add((node, instruction.parameters[1].value - 1));
+
+                }
+
+                if (addedToNest) {
+                    return null;
+                }
+
+                return node;
+
+            }
+
+            var total = new List<ScriptNode>();
+
+            foreach (var instruction in instructions) {
+
+                var unwrap = UpwrapAssembly(instruction, true, out var _);
+
+                if (unwrap != null) {
+                    total.Add(unwrap);
+                }
+
+            }
+
+            return total;
+
+        }
+
         public List<byte> Compile(int newOffset) {
 
             offset = newOffset;
@@ -307,6 +498,79 @@ namespace FCopParser {
 
     }
 
+    public enum ScriptDataType {
+        Void,
+        Any,
+        Int,
+        Bool,
+        Asset
+    }
 
+    public struct ScriptParameter {
+
+        public string name;
+        public ScriptDataType dataType;
+
+        public ScriptParameter(string name, ScriptDataType dataType) {
+            this.name = name;
+            this.dataType = dataType;
+        }
+
+    }
+
+    public struct ScriptOperationData {
+
+        public string name;
+        public ScriptDataType defaultReturnType;
+        public bool isOperator;
+        public List<ScriptParameter> parameterData;
+
+        public ScriptOperationData(string name, ScriptDataType defaultReturnType, bool isOperator, List<ScriptParameter> parameterData) {
+            this.name = name;
+            this.defaultReturnType = defaultReturnType;
+            this.isOperator = isOperator;
+            this.parameterData = parameterData;
+        }
+    }
+
+    public class ScriptNode {
+
+        public ByteCode byteCode;
+        public string name;
+        public ScriptDataType defaultReturnType;
+        public bool isOperator;
+        public List<ScriptParameter> parameterData;
+
+        public List<ScriptNode> parameters = new();
+        public List<ScriptNode> nestedNodes = new();
+
+        public ScriptNode(ByteCode byteCode, string name, ScriptDataType defaultReturnType, bool isOperator, List<ScriptParameter> parameterData) {
+            this.byteCode = byteCode;
+            this.name = name;
+            this.defaultReturnType = defaultReturnType;
+            this.isOperator = isOperator;
+            this.parameterData = parameterData;
+        }
+
+        public ScriptNode(ByteCode byteCode, string name, ScriptDataType defaultReturnType, bool isOperator, List<ScriptParameter> parameterData, List<ScriptNode> parameters, List<ScriptNode> nestedNodes) : this(byteCode, name, defaultReturnType, isOperator, parameterData) {
+            this.parameters = parameters;
+            this.nestedNodes = nestedNodes;
+        }
+
+        public virtual ScriptDataType ReturnType() {
+            return defaultReturnType;
+        }
+
+    }
+
+    public class LiteralNode : ScriptNode {
+
+        public int value;
+
+        public LiteralNode(int value): base(ByteCode.LITERAL, "", ScriptDataType.Int, false, new()) {
+            this.value = value;
+        }
+
+    }
 
 }
